@@ -1,11 +1,13 @@
 """
 User Management Page
 """
+
 import streamlit as st
+
 from frontend.components.forms import create_user_form
 from frontend.components.tables import display_users
 from frontend.components.utils import get_api_status
-from frontend.config import PAGE_CONFIG, CUSTOM_CSS
+from frontend.config import CUSTOM_CSS, PAGE_CONFIG
 
 # Configure the page
 st.set_page_config(**PAGE_CONFIG)
@@ -40,5 +42,5 @@ st.markdown(
     "<div style='text-align: center; color: #666;'>"
     "ScottLMS User Management | Built with Streamlit"
     "</div>",
-    unsafe_allow_html=True
+    unsafe_allow_html=True,
 )

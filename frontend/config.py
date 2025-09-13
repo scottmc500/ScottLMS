@@ -1,17 +1,14 @@
 """
 Frontend configuration settings
 """
+
 import os
 
 # Configuration
 API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost")
 
 # Page configuration
-PAGE_CONFIG = {
-    "page_title": "ScottLMS Dashboard",
-    "page_icon": "🎓",
-    "layout": "wide"
-}
+PAGE_CONFIG = {"page_title": "ScottLMS Dashboard", "page_icon": "🎓", "layout": "wide"}
 
 # Custom CSS
 CUSTOM_CSS = """
