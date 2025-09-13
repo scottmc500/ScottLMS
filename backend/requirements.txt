@@ -37,6 +37,7 @@ watchfiles==0.21.0
 pytest-cov==4.1.0
 httpx==0.25.2
 bandit==1.7.5
+pbr==6.0.0
 # safety==2.3.5  # Temporarily disabled due to packaging conflicts
 
 # Frontend
