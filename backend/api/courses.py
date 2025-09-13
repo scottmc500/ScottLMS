@@ -3,11 +3,13 @@ Course endpoints for ScottLMS
 """
 
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from beanie import PydanticObjectId
 
-from models.course import Course, CourseCreate, CourseUpdate, CourseResponse, CourseWithInstructor, CourseStatus
+from beanie import PydanticObjectId
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+
 from core.exceptions import CourseNotFoundError
+from models.course import (Course, CourseCreate, CourseResponse, CourseStatus,
+                           CourseUpdate, CourseWithInstructor)
 from services.course_service import CourseService
 
 router = APIRouter()
@@ -20,10 +22,7 @@ async def create_course(course_data: CourseCreate):
         course = await CourseService.create_course(course_data)
         return course
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.get("/", response_model=List[CourseResponse])
@@ -32,15 +31,15 @@ async def get_courses(
     limit: int = Query(100, ge=1, le=1000, description="Number of courses to return"),
     status: Optional[CourseStatus] = Query(None, description="Filter by course status"),
     instructor_id: Optional[str] = Query(None, description="Filter by instructor ID"),
-    search: Optional[str] = Query(None, description="Search in title and description")
+    search: Optional[str] = Query(None, description="Search in title and description"),
 ):
     """Get list of courses with optional filtering and search"""
     courses = await CourseService.get_courses(
-        skip=skip, 
-        limit=limit, 
-        status=status, 
+        skip=skip,
+        limit=limit,
+        status=status,
         instructor_id=instructor_id,
-        search=search
+        search=search,
     )
     return courses
 

@@ -3,11 +3,12 @@ User endpoints for ScottLMS
 """
 
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from beanie import PydanticObjectId
 
-from models.user import User, UserCreate, UserUpdate, UserResponse, UserRole
+from beanie import PydanticObjectId
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+
 from core.exceptions import UserNotFoundError
+from models.user import User, UserCreate, UserResponse, UserRole, UserUpdate
 from services.user_service import UserService
 
 router = APIRouter()
@@ -20,10 +21,7 @@ async def create_user(user_data: UserCreate):
         user = await UserService.create_user(user_data)
         return user
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.get("/", response_model=List[UserResponse])
@@ -31,10 +29,12 @@ async def get_users(
     skip: int = Query(0, ge=0, description="Number of users to skip"),
     limit: int = Query(100, ge=1, le=1000, description="Number of users to return"),
     role: Optional[UserRole] = Query(None, description="Filter by user role"),
-    is_active: Optional[bool] = Query(None, description="Filter by active status")
+    is_active: Optional[bool] = Query(None, description="Filter by active status"),
 ):
     """Get list of users with optional filtering"""
-    users = await UserService.get_users(skip=skip, limit=limit, role=role, is_active=is_active)
+    users = await UserService.get_users(
+        skip=skip, limit=limit, role=role, is_active=is_active
+    )
     return users
 
 
