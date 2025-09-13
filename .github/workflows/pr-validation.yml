@@ -43,11 +43,15 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-
 
-    - name: Install dependencies
+    - name: Install backend dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
+        pip install -r backend/requirements.txt
         pip install pytest-cov bandit safety
+
+    - name: Install frontend dependencies
+      run: |
+        pip install -r frontend/requirements.txt
 
     - name: Set up environment variables
       run: |
@@ -55,40 +59,69 @@ jobs:
         echo "SECRET_KEY=test-secret-key" >> $GITHUB_ENV
         echo "ENVIRONMENT=testing" >> $GITHUB_ENV
         echo "LOG_LEVEL=info" >> $GITHUB_ENV
+        echo "API_BASE_URL=http://localhost:8000" >> $GITHUB_ENV
 
-    - name: Lint with flake8
+    - name: Lint backend with flake8
       run: |
         # Stop the build if there are Python syntax errors or undefined names
-        flake8 app/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 backend/ --count --select=E9,F63,F7,F82 --show-source --statistics
         # Exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 app/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+        flake8 backend/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
-    - name: Format check with black
+    - name: Lint frontend with flake8
       run: |
-        black --check app/
+        flake8 frontend/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 frontend/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
-    - name: Import sorting check with isort
+    - name: Format check backend with black
       run: |
-        isort --check-only app/
+        black --check backend/
 
-    - name: Security check with bandit
+    - name: Format check frontend with black
       run: |
-        bandit -r app/ -f json -o bandit-report.json || true
-        bandit -r app/
+        black --check frontend/
+
+    - name: Import sorting check backend with isort
+      run: |
+        isort --check-only backend/
+
+    - name: Import sorting check frontend with isort
+      run: |
+        isort --check-only frontend/
+
+    - name: Security check backend with bandit
+      run: |
+        bandit -r backend/ -f json -o backend-bandit-report.json || true
+        bandit -r backend/
+
+    - name: Security check frontend with bandit
+      run: |
+        bandit -r frontend/ -f json -o frontend-bandit-report.json || true
+        bandit -r frontend/
 
     - name: Security check with safety
       run: |
         safety check --json --output safety-report.json || true
         safety check
 
-    - name: Run tests
+    - name: Run backend tests
       run: |
-        pytest --cov=app --cov-report=xml --cov-report=html --junitxml=pytest-report.xml
+        cd backend && pytest --cov=backend --cov-report=xml --cov-report=html --junitxml=backend-pytest-report.xml
+
+    - name: Run frontend tests
+      run: |
+        pytest tests/test_frontend_*.py --cov=frontend --cov-report=xml --cov-report=html --junitxml=frontend-pytest-report.xml
+
+    - name: Combine coverage reports
+      run: |
+        # Combine backend and frontend coverage reports
+        coverage combine backend/.coverage .coverage || true
+        coverage xml -o combined-coverage.xml
 
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v3
       with:
-        file: ./coverage.xml
+        file: ./combined-coverage.xml
         flags: unittests
         name: codecov-umbrella
         fail_ci_if_error: false
@@ -99,10 +132,12 @@ jobs:
       with:
         name: test-results
         path: |
-          pytest-report.xml
-          coverage.xml
+          backend-pytest-report.xml
+          frontend-pytest-report.xml
+          combined-coverage.xml
           htmlcov/
-          bandit-report.json
+          backend-bandit-report.json
+          frontend-bandit-report.json
           safety-report.json
 
   # Docker Build Test
@@ -118,29 +153,53 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
-    - name: Build Docker image
+    - name: Build backend Docker image
       uses: docker/build-push-action@v5
       with:
-        context: .
+        context: ./backend
         push: false
-        tags: scottlms-api:test
+        tags: scottlms-backend:test
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
-    - name: Test Docker image
+    - name: Build frontend Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./frontend
+        push: false
+        tags: scottlms-frontend:test
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Test backend Docker image
       run: |
-        # Start the container
-        docker run -d --name test-container -p 8000:8000 scottlms-api:test
+        # Start the backend container
+        docker run -d --name backend-test-container -p 8000:8000 scottlms-backend:test
         
         # Wait for the container to start
-        sleep 10
+        sleep 15
         
         # Test health endpoint
         curl -f http://localhost:8000/health || exit 1
         
         # Clean up
-        docker stop test-container
-        docker rm test-container
+        docker stop backend-test-container
+        docker rm backend-test-container
+
+    - name: Test frontend Docker image
+      run: |
+        # Start the frontend container
+        docker run -d --name frontend-test-container -p 8501:8501 scottlms-frontend:test
+        
+        # Wait for the container to start
+        sleep 15
+        
+        # Test frontend endpoint
+        curl -f http://localhost:8501 || exit 1
+        
+        # Clean up
+        docker stop frontend-test-container
+        docker rm frontend-test-container
 
   # Infrastructure Validation
   terraform-validate:
@@ -240,10 +299,11 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Start application
+    - name: Start applications
       run: |
-        docker run -d --name perf-test -p 8000:8000 -e MONGODB_URL=mongodb://host.docker.internal:27017/scottlms scottlms-api:test
-        sleep 15
+        docker run -d --name backend-perf-test -p 8000:8000 -e MONGODB_URL=mongodb://host.docker.internal:27017/scottlms scottlms-backend:test
+        docker run -d --name frontend-perf-test -p 8501:8501 -e API_BASE_URL=http://host.docker.internal:8000 scottlms-frontend:test
+        sleep 20
 
     - name: Install k6
       run: |
@@ -255,8 +315,8 @@ jobs:
 
     - name: Run performance tests
       run: |
-        # Create a simple k6 test
-        cat > performance-test.js << 'EOF'
+        # Create a simple k6 test for backend API
+        cat > backend-performance-test.js << 'EOF'
         import http from 'k6/http';
         import { check } from 'k6';
 
@@ -269,13 +329,33 @@ jobs:
         }
         EOF
         
-        k6 run --vus 10 --duration 30s performance-test.js
+        k6 run --vus 10 --duration 30s backend-performance-test.js
+
+    - name: Run frontend performance tests
+      run: |
+        # Create a simple k6 test for frontend
+        cat > frontend-performance-test.js << 'EOF'
+        import http from 'k6/http';
+        import { check } from 'k6';
+
+        export default function () {
+          const response = http.get('http://localhost:8501');
+          check(response, {
+            'status is 200': (r) => r.status === 200,
+            'response time < 2000ms': (r) => r.timings.duration < 2000,
+          });
+        }
+        EOF
+        
+        k6 run --vus 5 --duration 20s frontend-performance-test.js
 
     - name: Cleanup
       if: always()
       run: |
-        docker stop perf-test || true
-        docker rm perf-test || true
+        docker stop backend-perf-test || true
+        docker rm backend-perf-test || true
+        docker stop frontend-perf-test || true
+        docker rm frontend-perf-test || true
 
   # Summary
   pr-summary:
