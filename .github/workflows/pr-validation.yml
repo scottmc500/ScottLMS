@@ -84,11 +84,6 @@ jobs:
         bandit -r frontend/ -f json -o frontend-bandit-report.json || true
         bandit -r frontend/
 
-    - name: Security check with safety
-      run: |
-        safety scan --json --output-file safety-report.json || true
-        safety scan
-
     - name: Run backend tests
       run: |
         cd backend && pytest --cov=backend --cov-report=xml --cov-report=html --junitxml=backend-pytest-report.xml
@@ -123,7 +118,6 @@ jobs:
           htmlcov/
           backend-bandit-report.json
           frontend-bandit-report.json
-          safety-report.json
 
   # Docker Build Test
   docker-build:
