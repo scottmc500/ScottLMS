@@ -84,24 +84,14 @@ jobs:
         bandit -r frontend/ -f json -o frontend-bandit-report.json || true
         bandit -r frontend/
 
-    - name: Run backend tests
+    - name: Run all tests
       run: |
-        cd backend && pytest --cov=backend --cov-report=xml --cov-report=html --junitxml=backend-pytest-report.xml
-
-    - name: Run frontend tests
-      run: |
-        pytest tests/test_frontend_*.py --cov=frontend --cov-report=xml --cov-report=html --junitxml=frontend-pytest-report.xml
-
-    - name: Combine coverage reports
-      run: |
-        # Combine backend and frontend coverage reports
-        coverage combine backend/.coverage .coverage || true
-        coverage xml -o combined-coverage.xml
+        python run_tests.py --type all --coverage --verbose
 
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v3
       with:
-        file: ./combined-coverage.xml
+        file: ./coverage.xml
         flags: unittests
         name: codecov-umbrella
         fail_ci_if_error: false
@@ -112,9 +102,7 @@ jobs:
       with:
         name: test-results
         path: |
-          backend-pytest-report.xml
-          frontend-pytest-report.xml
-          combined-coverage.xml
+          coverage.xml
           htmlcov/
           backend-bandit-report.json
           frontend-bandit-report.json
