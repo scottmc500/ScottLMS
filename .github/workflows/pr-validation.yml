@@ -86,8 +86,8 @@ jobs:
 
     - name: Security check with safety
       run: |
-        safety check --json --output safety-report.json || true
-        safety check
+        safety scan --json --output-file safety-report.json || true
+        safety scan
 
     - name: Run backend tests
       run: |
