@@ -1,0 +1,26 @@
+# ScottLMS Terraform Variables Example
+# Copy this file to terraform.tfvars and update with your actual values
+
+# AWS Configuration
+aws_region = "us-west-2"
+project_name = "scottlms"
+environment = "production"
+domain_name = "scottlms.com"
+
+# VPC Configuration
+vpc_cidr = "10.0.0.0/16"
+availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
+public_subnet_cidrs = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
+private_subnet_cidrs = ["10.0.11.0/24", "10.0.12.0/24", "10.0.13.0/24"]
+
+# EKS Configuration
+eks_cluster_version = "1.28"
+eks_node_instance_types = ["t3.medium", "t3.large"]
+eks_node_desired_size = 3
+eks_node_max_size = 10
+eks_node_min_size = 1
+
+# MongoDB Atlas Configuration
+mongodb_atlas_public_key = "your-mongodb-atlas-public-key"
+mongodb_atlas_private_key = "your-mongodb-atlas-private-key"
+mongodb_atlas_project_id = "your-mongodb-atlas-project-id"

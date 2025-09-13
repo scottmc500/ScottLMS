@@ -1,0 +1,8 @@
+# Frontend Dependencies for ScottLMS
+# Streamlit and related packages
+streamlit==1.28.1
+requests==2.31.0
+
+# Optional: Additional frontend packages
+# plotly==5.17.0  # For charts and graphs
+# pandas==2.1.3   # For data manipulation (if needed)
