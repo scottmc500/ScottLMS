@@ -8,11 +8,12 @@
 
 # Variables
 PROJECT_NAME := scottlms
-AWS_REGION := us-west-2
+AWS_REGION := us-east-1
 ENVIRONMENT := production
 IMAGE_TAG := latest
 PYTHON := python3
 PIP := pip3
+AWS_PROFILE := ScottLMS-Permission-Set-055239228382
 
 # Colors for output
 RED := \033[0;31m
@@ -195,26 +196,125 @@ db-backup: ## Backup database
 	docker cp $$(docker-compose ps -q mongodb):/tmp/backup ./backups/backup-$$(date +%Y%m%d-%H%M%S)
 	@echo "$(GREEN)Database backup created!$(NC)"
 
+##@ AWS Authentication
+aws-login: ## Login to AWS SSO and get temporary credentials (interactive)
+	@if [ "$$CI" = "true" ] || [ "$$GITHUB_ACTIONS" = "true" ]; then \
+		echo "$(YELLOW)Running in CI/CD environment. Using existing AWS credentials.$(NC)"; \
+		echo "$(GREEN)AWS credentials should be configured via GitHub Actions secrets.$(NC)"; \
+	else \
+		echo "$(GREEN)Logging into AWS SSO...$(NC)"; \
+		aws sso login --profile $(AWS_PROFILE); \
+		echo "$(GREEN)Getting temporary credentials...$(NC)"; \
+		eval $$(aws configure export-credentials --profile $(AWS_PROFILE) --format env) && \
+		export AWS_ACCESS_KEY_ID=$$AWS_ACCESS_KEY_ID && \
+		export AWS_SECRET_ACCESS_KEY=$$AWS_SECRET_ACCESS_KEY && \
+		export AWS_SESSION_TOKEN=$$AWS_SESSION_TOKEN && \
+		export AWS_DEFAULT_REGION=$(AWS_REGION) && \
+		echo "$(GREEN)AWS credentials configured!$(NC)" && \
+		echo "$(YELLOW)Credentials expire at: $$AWS_CREDENTIAL_EXPIRATION$(NC)"; \
+	fi
+
+aws-test: ## Test AWS credentials
+	@echo "$(GREEN)Testing AWS credentials...$(NC)"
+	aws sts get-caller-identity
+
+aws-status: ## Show AWS authentication status
+	@echo "$(BLUE)=== AWS Authentication Status ===$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Current AWS Profile:$(NC)"
+	@echo "$$AWS_PROFILE"
+	@echo ""
+	@echo "$(YELLOW)AWS Identity:$(NC)"
+	@aws sts get-caller-identity 2>/dev/null || echo "$(RED)❌ Not authenticated$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Available AWS Profiles:$(NC)"
+	@aws configure list-profiles 2>/dev/null || echo "$(RED)❌ No profiles configured$(NC)"
+
 ##@ Infrastructure
-infra-init: ## Initialize Terraform
+infra-init:
 	@echo "$(GREEN)Initializing Terraform...$(NC)"
-	cd terraform && terraform init
+	@if [ "$$CI" = "true" ] || [ "$$GITHUB_ACTIONS" = "true" ]; then \
+		echo "$(YELLOW)Using CI/CD AWS credentials...$(NC)"; \
+		cd terraform && terraform init; \
+	else \
+		echo "$(YELLOW)Using SSO AWS credentials...$(NC)"; \
+		eval $$(aws configure export-credentials --profile $(AWS_PROFILE) --format env) && \
+		export AWS_ACCESS_KEY_ID=$$AWS_ACCESS_KEY_ID && \
+		export AWS_SECRET_ACCESS_KEY=$$AWS_SECRET_ACCESS_KEY && \
+		export AWS_SESSION_TOKEN=$$AWS_SESSION_TOKEN && \
+		export AWS_DEFAULT_REGION=$(AWS_REGION) && \
+		unset AWS_PROFILE && \
+		cd terraform && terraform init; \
+	fi
 
-infra-plan: ## Plan Terraform deployment
+infra-validate:
+	@echo "$(GREEN)Validating Terraform configuration...$(NC)"
+	@eval $$(aws configure export-credentials --profile $(AWS_PROFILE) --format env) && \
+	export AWS_ACCESS_KEY_ID=$$AWS_ACCESS_KEY_ID && \
+	export AWS_SECRET_ACCESS_KEY=$$AWS_SECRET_ACCESS_KEY && \
+	export AWS_SESSION_TOKEN=$$AWS_SESSION_TOKEN && \
+	export AWS_DEFAULT_REGION=$(AWS_REGION) && \
+	unset AWS_PROFILE && \
+	cd terraform && terraform validate
+
+infra-fmt:
+	@echo "$(GREEN)Formatting Terraform configuration...$(NC)"
+	@eval $$(aws configure export-credentials --profile $(AWS_PROFILE) --format env) && \
+	export AWS_ACCESS_KEY_ID=$$AWS_ACCESS_KEY_ID && \
+	export AWS_SECRET_ACCESS_KEY=$$AWS_SECRET_ACCESS_KEY && \
+	export AWS_SESSION_TOKEN=$$AWS_SESSION_TOKEN && \
+	export AWS_DEFAULT_REGION=$(AWS_REGION) && \
+	unset AWS_PROFILE && \
+	cd terraform && terraform fmt -recursive
+
+infra-plan:
 	@echo "$(GREEN)Planning Terraform deployment...$(NC)"
-	cd terraform && terraform plan -var="environment=$(ENVIRONMENT)"
+	@eval $$(aws configure export-credentials --profile $(AWS_PROFILE) --format env) && \
+	export AWS_ACCESS_KEY_ID=$$AWS_ACCESS_KEY_ID && \
+	export AWS_SECRET_ACCESS_KEY=$$AWS_SECRET_ACCESS_KEY && \
+	export AWS_SESSION_TOKEN=$$AWS_SESSION_TOKEN && \
+	export AWS_DEFAULT_REGION=$(AWS_REGION) && \
+	unset AWS_PROFILE && \
+	cd terraform && terraform plan -out=tfplan
 
-infra-apply: ## Apply Terraform configuration
+infra-apply:
 	@echo "$(GREEN)Applying Terraform configuration...$(NC)"
-	cd terraform && terraform apply -var="environment=$(ENVIRONMENT)" -auto-approve
+	@eval $$(aws configure export-credentials --profile $(AWS_PROFILE) --format env) && \
+	export AWS_ACCESS_KEY_ID=$$AWS_ACCESS_KEY_ID && \
+	export AWS_SECRET_ACCESS_KEY=$$AWS_SECRET_ACCESS_KEY && \
+	export AWS_SESSION_TOKEN=$$AWS_SESSION_TOKEN && \
+	export AWS_DEFAULT_REGION=$(AWS_REGION) && \
+	unset AWS_PROFILE && \
+	cd terraform && terraform apply tfplan
 
-infra-destroy: ## Destroy Terraform infrastructure (WARNING: This will delete all resources)
+infra-destroy:
 	@echo "$(RED)WARNING: This will destroy all infrastructure!$(NC)"
 	@read -p "Are you sure? (y/N): " confirm && [ "$$confirm" = "y" ]
-	cd terraform && terraform destroy -var="environment=$(ENVIRONMENT)" -auto-approve
+	@eval $$(aws configure export-credentials --profile $(AWS_PROFILE) --format env) && \
+	export AWS_ACCESS_KEY_ID=$$AWS_ACCESS_KEY_ID && \
+	export AWS_SECRET_ACCESS_KEY=$$AWS_SECRET_ACCESS_KEY && \
+	export AWS_SESSION_TOKEN=$$AWS_SESSION_TOKEN && \
+	export AWS_DEFAULT_REGION=$(AWS_REGION) && \
+	unset AWS_PROFILE && \
+	cd terraform && terraform destroy -auto-approve
 
-infra-output: ## Show Terraform outputs
+infra-output:
+	@eval $$(aws configure export-credentials --profile $(AWS_PROFILE) --format env) && \
+	export AWS_ACCESS_KEY_ID=$$AWS_ACCESS_KEY_ID && \
+	export AWS_SECRET_ACCESS_KEY=$$AWS_SECRET_ACCESS_KEY && \
+	export AWS_SESSION_TOKEN=$$AWS_SESSION_TOKEN && \
+	export AWS_DEFAULT_REGION=$(AWS_REGION) && \
+	unset AWS_PROFILE && \
 	cd terraform && terraform output
+
+infra-clean-plan: ## Clean up Terraform plan file
+	@echo "$(GREEN)Cleaning up Terraform plan file...$(NC)"
+	@if [ -f terraform/tfplan ]; then \
+		rm terraform/tfplan; \
+		echo "$(GREEN)Plan file removed$(NC)"; \
+	else \
+		echo "$(YELLOW)No plan file found$(NC)"; \
+	fi
 
 ##@ Deployment
 deploy-build: ## Build and push Docker image to ECR
@@ -230,38 +330,95 @@ deploy-build: ## Build and push Docker image to ECR
 	docker push $$ECR_REPO_URL:$(IMAGE_TAG); \
 	echo "$(GREEN)Image pushed to $$ECR_REPO_URL:$(IMAGE_TAG)$(NC)"
 
-deploy-k8s: ## Deploy application to Kubernetes
-	@echo "$(GREEN)Deploying to Kubernetes...$(NC)"
-	aws eks update-kubeconfig --region $(AWS_REGION) --name $(PROJECT_NAME)-$(ENVIRONMENT)
-	kubectl apply -k k8s/
-	@echo "$(GREEN)Waiting for deployment to be ready...$(NC)"
-	kubectl wait --for=condition=available --timeout=300s deployment/scottlms-api -n scottlms
-	@echo "$(GREEN)Deployment complete!$(NC)"
+deploy-ecs: aws-login ## Deploy application to ECS using Terraform
+	@echo "$(GREEN)Deploying to ECS using Terraform...$(NC)"
+	@eval $$(aws configure export-credentials --profile $(AWS_PROFILE) --format env) && \
+	export AWS_ACCESS_KEY_ID=$$AWS_ACCESS_KEY_ID && \
+	export AWS_SECRET_ACCESS_KEY=$$AWS_SECRET_ACCESS_KEY && \
+	export AWS_SESSION_TOKEN=$$AWS_SESSION_TOKEN && \
+	export AWS_DEFAULT_REGION=$(AWS_REGION) && \
+	unset AWS_PROFILE && \
+	cd terraform && terraform apply -var="image_tag=$(IMAGE_TAG)" -auto-approve
+	@echo "$(GREEN)Waiting for ECS services to be ready...$(NC)"
+	@eval $$(aws configure export-credentials --profile $(AWS_PROFILE) --format env) && \
+	export AWS_ACCESS_KEY_ID=$$AWS_ACCESS_KEY_ID && \
+	export AWS_SECRET_ACCESS_KEY=$$AWS_SECRET_ACCESS_KEY && \
+	export AWS_SESSION_TOKEN=$$AWS_SESSION_TOKEN && \
+	export AWS_DEFAULT_REGION=$(AWS_REGION) && \
+	aws ecs wait services-stable --cluster $(PROJECT_NAME)-$(ENVIRONMENT) --services scottlms-api scottlms-frontend
+	@echo "$(GREEN)ECS deployment complete!$(NC)"
 
-deploy: deploy-build deploy-k8s ## Full deployment (build + deploy)
+deploy: deploy-build deploy-ecs ## Full deployment (build + deploy to ECS)
 
 ##@ Monitoring & Debugging
-status: ## Show deployment status
-	@echo "$(BLUE)Kubernetes Status:$(NC)"
-	kubectl get pods -n scottlms
-	@echo ""
-	@echo "$(BLUE)Services:$(NC)"
-	kubectl get services -n scottlms
-	@echo ""
-	@echo "$(BLUE)Ingress:$(NC)"
-	kubectl get ingress -n scottlms
+status: aws-login ## Show ECS deployment status
+	@echo "$(BLUE)=== ECS Deployment Status ===$(NC)"
+	@eval $$(aws configure export-credentials --profile $(AWS_PROFILE) --format env) && \
+	export AWS_ACCESS_KEY_ID=$$AWS_ACCESS_KEY_ID && \
+	export AWS_SECRET_ACCESS_KEY=$$AWS_SECRET_ACCESS_KEY && \
+	export AWS_SESSION_TOKEN=$$AWS_SESSION_TOKEN && \
+	export AWS_DEFAULT_REGION=$(AWS_REGION) && \
+	echo "$(YELLOW)ECS Cluster:$(NC)" && \
+	aws ecs describe-clusters --clusters $(PROJECT_NAME)-$(ENVIRONMENT) --query 'clusters[0].{Name:clusterName,Status:status,RunningTasks:runningTasksCount,PendingTasks:pendingTasksCount}' --output table && \
+	echo "" && \
+	echo "$(YELLOW)ECS Services:$(NC)" && \
+	aws ecs list-services --cluster $(PROJECT_NAME)-$(ENVIRONMENT) --query 'serviceArns[]' --output table && \
+	echo "" && \
+	echo "$(YELLOW)Load Balancer:$(NC)" && \
+	aws elbv2 describe-load-balancers --names $(PROJECT_NAME)-$(ENVIRONMENT) --query 'LoadBalancers[0].{Name:LoadBalancerName,DNSName:DNSName,State:State.Code}' --output table 2>/dev/null || echo "$(RED)Load balancer not found$(NC)"
 
-logs: ## View application logs
-	kubectl logs -f deployment/scottlms-api -n scottlms
+logs: aws-login ## View ECS application logs
+	@echo "$(GREEN)Viewing ECS application logs...$(NC)"
+	@eval $$(aws configure export-credentials --profile $(AWS_PROFILE) --format env) && \
+	export AWS_ACCESS_KEY_ID=$$AWS_ACCESS_KEY_ID && \
+	export AWS_SECRET_ACCESS_KEY=$$AWS_SECRET_ACCESS_KEY && \
+	export AWS_SESSION_TOKEN=$$AWS_SESSION_TOKEN && \
+	export AWS_DEFAULT_REGION=$(AWS_REGION) && \
+	aws logs tail /ecs/scottlms-api --follow
 
-logs-prev: ## View previous application logs
-	kubectl logs --previous deployment/scottlms-api -n scottlms
+logs-frontend: aws-login ## View ECS frontend logs
+	@echo "$(GREEN)Viewing ECS frontend logs...$(NC)"
+	@eval $$(aws configure export-credentials --profile $(AWS_PROFILE) --format env) && \
+	export AWS_ACCESS_KEY_ID=$$AWS_ACCESS_KEY_ID && \
+	export AWS_SECRET_ACCESS_KEY=$$AWS_SECRET_ACCESS_KEY && \
+	export AWS_SESSION_TOKEN=$$AWS_SESSION_TOKEN && \
+	export AWS_DEFAULT_REGION=$(AWS_REGION) && \
+	aws logs tail /ecs/scottlms-frontend --follow
 
-shell: ## Get shell access to running pod
-	kubectl exec -it deployment/scottlms-api -n scottlms -- /bin/bash
+logs-all: aws-login ## View all ECS logs
+	@echo "$(GREEN)Viewing all ECS logs...$(NC)"
+	@eval $$(aws configure export-credentials --profile $(AWS_PROFILE) --format env) && \
+	export AWS_ACCESS_KEY_ID=$$AWS_ACCESS_KEY_ID && \
+	export AWS_SECRET_ACCESS_KEY=$$AWS_SECRET_ACCESS_KEY && \
+	export AWS_SESSION_TOKEN=$$AWS_SESSION_TOKEN && \
+	export AWS_DEFAULT_REGION=$(AWS_REGION) && \
+	aws logs tail /ecs/scottlms-api /ecs/scottlms-frontend --follow
 
-port-forward: ## Port forward to access application locally
-	kubectl port-forward service/scottlms-api-service 8000:80 -n scottlms
+shell: aws-login ## Get shell access to running ECS task
+	@echo "$(GREEN)Getting shell access to ECS task...$(NC)"
+	@eval $$(aws configure export-credentials --profile $(AWS_PROFILE) --format env) && \
+	export AWS_ACCESS_KEY_ID=$$AWS_ACCESS_KEY_ID && \
+	export AWS_SECRET_ACCESS_KEY=$$AWS_SECRET_ACCESS_KEY && \
+	export AWS_SESSION_TOKEN=$$AWS_SESSION_TOKEN && \
+	export AWS_DEFAULT_REGION=$(AWS_REGION) && \
+	TASK_ARN=$$(aws ecs list-tasks --cluster $(PROJECT_NAME)-$(ENVIRONMENT) --service-name scottlms-api --query 'taskArns[0]' --output text) && \
+	aws ecs execute-command --cluster $(PROJECT_NAME)-$(ENVIRONMENT) --task $$TASK_ARN --container scottlms-api --interactive --command "/bin/bash"
+
+urls: aws-login ## Show application URLs
+	@echo "$(BLUE)=== Application URLs ===$(NC)"
+	@eval $$(aws configure export-credentials --profile $(AWS_PROFILE) --format env) && \
+	export AWS_ACCESS_KEY_ID=$$AWS_ACCESS_KEY_ID && \
+	export AWS_SECRET_ACCESS_KEY=$$AWS_SECRET_ACCESS_KEY && \
+	export AWS_SESSION_TOKEN=$$AWS_SESSION_TOKEN && \
+	export AWS_DEFAULT_REGION=$(AWS_REGION) && \
+	ALB_DNS=$$(aws elbv2 describe-load-balancers --names $(PROJECT_NAME)-$(ENVIRONMENT) --query 'LoadBalancers[0].DNSName' --output text 2>/dev/null) && \
+	if [ "$$ALB_DNS" != "None" ] && [ -n "$$ALB_DNS" ]; then \
+		echo "$(GREEN)Frontend: http://$$ALB_DNS:8080$(NC)"; \
+		echo "$(GREEN)API: http://$$ALB_DNS$(NC)"; \
+		echo "$(GREEN)API Docs: http://$$ALB_DNS/docs$(NC)"; \
+	else \
+		echo "$(RED)Load balancer not found. Run 'make infra-apply' first.$(NC)"; \
+	fi
 
 ##@ CI/CD
 ci-test: ## Run CI tests locally
@@ -286,13 +443,21 @@ ci-terraform: ## Validate Terraform configuration
 	cd terraform && terraform fmt -check -recursive
 	cd terraform && terraform init -backend=false
 	cd terraform && terraform validate
-	cd terraform && terraform plan -var="environment=test" -var="project_name=scottlms-test"
+	cd terraform && terraform plan -var="environment=test" -var="project_name=scottlms-test" -out=ci-test-plan && \
+	rm -f ci-test-plan
 
-ci-k8s: ## Validate Kubernetes manifests
-	@echo "$(GREEN)Validating Kubernetes manifests...$(NC)"
-	kubectl apply --dry-run=client -k k8s/
+ci-ecs: aws-login ## Validate ECS configuration with Terraform
+	@echo "$(GREEN)Validating ECS configuration with Terraform...$(NC)"
+	@eval $$(aws configure export-credentials --profile $(AWS_PROFILE) --format env) && \
+	export AWS_ACCESS_KEY_ID=$$AWS_ACCESS_KEY_ID && \
+	export AWS_SECRET_ACCESS_KEY=$$AWS_SECRET_ACCESS_KEY && \
+	export AWS_SESSION_TOKEN=$$AWS_SESSION_TOKEN && \
+	export AWS_DEFAULT_REGION=$(AWS_REGION) && \
+	unset AWS_PROFILE && \
+	cd terraform && terraform plan -var="image_tag=latest" -out=ci-plan && \
+	rm -f ci-plan
 
-ci-all: ci-test ci-docker ci-terraform ci-k8s ## Run all CI checks locally
+ci-all: ci-test ci-docker ci-terraform ci-ecs ## Run all CI checks locally
 
 ##@ Utilities
 clean: ## Clean up Docker images and containers
@@ -353,7 +518,7 @@ quality-all: format lint security-check ## Run all code quality checks
 build-all: build test quality-all ## Build, test, and quality check
 	@echo "$(GREEN)Build pipeline completed!$(NC)"
 
-deploy-all: infra-apply deploy-build deploy-k8s ## Full deployment pipeline
+deploy-all: infra-apply deploy-build deploy-ecs ## Full deployment pipeline
 	@echo "$(GREEN)Full deployment completed!$(NC)"
 
 infra-all: infra-init infra-plan infra-apply ## Complete infrastructure setup
@@ -373,8 +538,8 @@ info: ## Show project information
 	@echo "$(BLUE)ScottLMS - Learning Management System$(NC)"
 	@echo ""
 	@echo "$(YELLOW)Project Structure:$(NC)"
-	@echo "  • FastAPI Backend: app/"
-	@echo "  • Kubernetes Manifests: k8s/"
+	@echo "  • FastAPI Backend: backend/"
+	@echo "  • Frontend: frontend/"
 	@echo "  • Infrastructure: terraform/"
 	@echo "  • Scripts: scripts/"
 	@echo ""
@@ -392,12 +557,29 @@ info: ## Show project information
 	@echo "  • make test-all     - Run all tests with coverage"
 	@echo "  • make quality-all  - Run all code quality checks"
 	@echo "  • make build-all    - Build, test, and quality check"
-	@echo "  • make deploy-all   - Full deployment pipeline"
+	@echo "  • make deploy-all   - Full deployment pipeline (ECS)"
 	@echo "  • make monitor      - Show status and follow logs"
 	@echo "  • make reset        - Reset everything and restart"
+	@echo ""
+	@echo "$(YELLOW)AWS Commands:$(NC)"
+	@echo "  • make aws-login    - Login to AWS SSO"
+	@echo "  • make aws-test     - Test AWS credentials"
+	@echo "  • make aws-status   - Show AWS authentication status"
+	@echo ""
+	@echo "$(YELLOW)Infrastructure Commands:$(NC)"
+	@echo "  • make infra-init      - Initialize Terraform"
+	@echo "  • make infra-validate  - Validate Terraform configuration"
+	@echo "  • make infra-fmt       - Format Terraform files"
+	@echo "  • make infra-plan      - Plan Terraform deployment (saves to tfplan)"
+	@echo "  • make infra-apply     - Apply Terraform configuration (uses tfplan)"
+	@echo "  • make infra-destroy   - Destroy all infrastructure"
+	@echo "  • make infra-output    - Show Terraform outputs"
+	@echo "  • make infra-clean-plan- Clean up plan file"
+	@echo "  • make status          - Check ECS deployment status"
+	@echo "  • make urls            - Show application URLs"
 	@echo ""
 	@echo "$(YELLOW)Common Commands:$(NC)"
 	@echo "  • make dev          - Start development environment"
 	@echo "  • make test         - Run tests"
-	@echo "  • make deploy       - Deploy to production"
-	@echo "  • make status       - Check deployment status"
+	@echo "  • make deploy       - Deploy to production (ECS)"
+	@echo "  • make logs         - View application logs"

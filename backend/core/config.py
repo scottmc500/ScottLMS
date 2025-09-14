@@ -31,7 +31,7 @@ class Settings(BaseSettings):
         raise ValueError(v)
 
     # Allowed hosts
-    ALLOWED_HOSTS: List[str] = ["localhost", "127.0.0.1", "0.0.0.0", "api", "api:8000"]  # nosec B104
+    ALLOWED_HOSTS: List[str] = ["localhost", "127.0.0.1", "0.0.0.0", "api", "api:8000", "scottlms-production-979063387.us-east-1.elb.amazonaws.com"]  # nosec B104
 
     # Database
     MONGODB_URL: str = "mongodb://localhost:27017/scottlms"

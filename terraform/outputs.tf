@@ -20,63 +20,85 @@ output "public_subnets" {
   value       = module.vpc.public_subnets
 }
 
-output "eks_cluster_id" {
-  description = "EKS cluster ID"
-  value       = module.eks.cluster_id
+# ECS Outputs
+output "ecs_cluster_id" {
+  description = "ECS cluster ID"
+  value       = aws_ecs_cluster.scottlms.id
 }
 
-output "eks_cluster_arn" {
-  description = "EKS cluster ARN"
-  value       = module.eks.cluster_arn
+output "ecs_cluster_arn" {
+  description = "ECS cluster ARN"
+  value       = aws_ecs_cluster.scottlms.arn
 }
 
-output "eks_cluster_endpoint" {
-  description = "Endpoint for EKS control plane"
-  value       = module.eks.cluster_endpoint
+output "ecs_cluster_name" {
+  description = "ECS cluster name"
+  value       = aws_ecs_cluster.scottlms.name
 }
 
-output "eks_cluster_security_group_id" {
-  description = "Security group ID attached to the EKS cluster"
-  value       = module.eks.cluster_security_group_id
-}
-
-output "eks_node_security_group_id" {
-  description = "Security group ID attached to the EKS nodes"
-  value       = module.eks.node_security_group_id
-}
-
-output "eks_oidc_provider_arn" {
-  description = "ARN of the EKS OIDC provider"
-  value       = module.eks.oidc_provider_arn
-}
-
-output "ecr_repository_url" {
-  description = "URL of the ECR repository"
-  value       = aws_ecr_repository.scottlms.repository_url
-}
-
+# Load Balancer Outputs
 output "alb_dns_name" {
   description = "DNS name of the Application Load Balancer"
-  value       = module.alb.lb_dns_name
+  value       = aws_lb.scottlms.dns_name
 }
 
 output "alb_zone_id" {
   description = "Zone ID of the Application Load Balancer"
-  value       = module.alb.lb_zone_id
+  value       = aws_lb.scottlms.zone_id
 }
 
-output "certificate_arn" {
-  description = "ARN of the SSL certificate"
-  value       = aws_acm_certificate.scottlms.arn
+output "alb_arn" {
+  description = "ARN of the Application Load Balancer"
+  value       = aws_lb.scottlms.arn
 }
 
+# ECR Outputs
+output "ecr_repository_url" {
+  description = "URL of the ECR repository for API"
+  value       = aws_ecr_repository.scottlms.repository_url
+}
+
+output "ecr_frontend_repository_url" {
+  description = "URL of the ECR repository for Frontend"
+  value       = aws_ecr_repository.scottlms_frontend.repository_url
+}
+
+# SSL Certificate Outputs
+# output "certificate_arn" {
+#   description = "ARN of the SSL certificate"
+#   value       = aws_acm_certificate.scottlms.arn
+# }
+
+# Route53 Outputs
 output "route53_zone_id" {
   description = "Route53 hosted zone ID"
   value       = aws_route53_zone.scottlms.zone_id
 }
 
-output "mongodb_atlas_cluster_connection_string" {
-  description = "MongoDB Atlas cluster connection string"
-  value       = mongodbatlas_cluster.scottlms.connection_strings[0].standard_srv
+# DocumentDB Outputs
+output "documentdb_endpoint" {
+  description = "DocumentDB cluster endpoint"
+  value       = aws_docdb_cluster.scottlms.endpoint
+}
+
+output "documentdb_port" {
+  description = "DocumentDB cluster port"
+  value       = aws_docdb_cluster.scottlms.port
+}
+
+output "documentdb_connection_string" {
+  description = "DocumentDB connection string"
+  value       = "mongodb://${aws_docdb_cluster.scottlms.master_username}:${random_password.documentdb_password.result}@${aws_docdb_cluster.scottlms.endpoint}:27017/scottlms?ssl=true&replicaSet=rs0&readPreference=secondaryPreferred&retryWrites=false"
   sensitive   = true
+}
+
+# Application URLs
+output "api_url" {
+  description = "URL of the API service"
+  value       = "http://${aws_lb.scottlms.dns_name}"
+}
+
+output "frontend_url" {
+  description = "URL of the Frontend service"
+  value       = "http://${aws_lb.scottlms.dns_name}:8080"
 }
