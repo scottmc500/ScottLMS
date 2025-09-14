@@ -120,25 +120,17 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
-    - name: Build backend Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: ./backend
-        push: false
-        load: true
-        tags: scottlms-backend:test
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-
-    - name: Build frontend Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: ./frontend
-        push: false
-        load: true
-        tags: scottlms-frontend:test
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
+    - name: Build Docker images with docker-compose
+      run: |
+        # Build both backend and frontend images simultaneously
+        docker-compose build --parallel
+        
+        # Tag the images for testing
+        docker tag scottlms-api scottlms-backend:test
+        docker tag scottlms-frontend scottlms-frontend:test
+        
+        echo "✅ Both Docker images built successfully"
+        docker images | grep scottlms
 
     - name: Test backend Docker image
       run: |
