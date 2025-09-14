@@ -120,10 +120,17 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
-    - name: Build Docker images with docker-compose
+    - name: Install Docker Compose
       run: |
-        # Build both backend and frontend images simultaneously
-        docker-compose build --parallel
+        # Install Docker Compose v2 (which is now integrated with Docker CLI)
+        # The GitHub Actions runner has Docker but not docker-compose command
+        echo "Docker Compose is available as 'docker compose' (v2)"
+        docker compose version
+
+    - name: Build Docker images with docker compose
+      run: |
+        # Build both backend and frontend images simultaneously using Docker Compose v2
+        docker compose build --parallel
         
         # Tag the images for testing
         docker tag scottlms-api scottlms-backend:test
