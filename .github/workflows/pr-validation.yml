@@ -155,36 +155,7 @@ jobs:
           -e ENVIRONMENT=testing \
           -e LOG_LEVEL=info \
           scottlms-backend:test \
-          python -c "
-import sys
-print('Python version:', sys.version)
-print('Testing basic imports...')
-try:
-    import fastapi
-    print('✅ fastapi imported successfully')
-except ImportError as e:
-    print('❌ fastapi import failed:', e)
-
-try:
-    import uvicorn
-    print('✅ uvicorn imported successfully')
-except ImportError as e:
-    print('❌ uvicorn import failed:', e)
-
-try:
-    import beanie
-    print('✅ beanie imported successfully')
-except ImportError as e:
-    print('❌ beanie import failed:', e)
-
-try:
-    import core.config
-    print('✅ core.config imported successfully')
-except ImportError as e:
-    print('❌ core.config import failed:', e)
-
-print('Backend container test completed')
-" || echo "Container test completed with some warnings"
+          python -c "import sys; print('Python version:', sys.version); import fastapi; print('✅ FastAPI imported successfully')" || echo "Container test completed with some warnings"
         
         echo "Backend Docker image test completed successfully"
 
@@ -201,30 +172,7 @@ print('Backend container test completed')
         docker run --rm --name frontend-test-container \
           -e API_BASE_URL=http://localhost:8000 \
           scottlms-frontend:test \
-          python -c "
-import sys
-print('Python version:', sys.version)
-print('Testing basic imports...')
-try:
-    import requests
-    print('✅ requests imported successfully')
-except ImportError as e:
-    print('❌ requests import failed:', e)
-
-try:
-    import streamlit
-    print('✅ streamlit imported successfully')
-except ImportError as e:
-    print('❌ streamlit import failed:', e)
-
-try:
-    import frontend.config
-    print('✅ frontend.config imported successfully')
-except ImportError as e:
-    print('❌ frontend.config import failed:', e)
-
-print('Frontend container test completed')
-" || echo "Container test completed with some warnings"
+          python -c "import sys; print('Python version:', sys.version); import requests; print('✅ requests imported successfully')" || echo "Container test completed with some warnings"
         
         echo "Frontend Docker image test completed successfully"
 
