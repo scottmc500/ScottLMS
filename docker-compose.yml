@@ -1,8 +1,8 @@
 services:
   api:
     build:
-      context: .
-      dockerfile: backend/Dockerfile
+      context: ./backend
+      dockerfile: Dockerfile
     ports:
       - "8000:8000"
     environment:
@@ -14,7 +14,7 @@ services:
         condition: service_healthy
     volumes:
       - ./backend:/app
-      - ./scripts:/app/scripts
+      - ../scripts:/app/scripts
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 10s
