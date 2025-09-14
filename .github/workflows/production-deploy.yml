@@ -159,7 +159,7 @@ jobs:
         sed -i "s|newTag: latest|newTag: ${{ needs.pre-deploy-checks.outputs.image-tag }}|g" k8s/kustomization.yaml
 
     - name: Upload updated manifests
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: k8s-manifests
         path: k8s/
