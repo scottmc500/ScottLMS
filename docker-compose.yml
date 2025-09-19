@@ -1,5 +1,6 @@
 services:
   api:
+    container_name: scottlms-api
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -25,6 +26,7 @@ services:
       - scottlms-network
 
   mongodb:
+    container_name: scottlms-mongodb
     image: mongo:7.0
     ports:
       - "27017:27017"
@@ -45,6 +47,7 @@ services:
       - scottlms-network
 
   mongo-express:
+    container_name: scottlms-mongodb-express
     image: mongo-express:1.0.0
     ports:
       - "8081:8081"
@@ -66,7 +69,8 @@ services:
     networks:
       - scottlms-network
 
-  frontend:
+  ui:
+    container_name: scottlms-ui
     build:
       context: ./frontend
       dockerfile: Dockerfile

@@ -4,8 +4,7 @@ Course Management Page
 
 import streamlit as st
 
-from frontend.components.forms import create_course_form
-from frontend.components.tables import display_courses
+from frontend.components.courses import create_course_form, display_courses
 from frontend.components.utils import get_api_status
 from frontend.config import CUSTOM_CSS, PAGE_CONFIG
 

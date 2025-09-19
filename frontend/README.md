@@ -6,8 +6,9 @@ A modular Streamlit application for the ScottLMS Learning Management System.
 
 ```
 frontend/
-├── main.py              # Main application entry point
+├── Home.py              # Home page entry point
 ├── config.py            # Configuration and settings
+├── styles.css           # Custom CSS styles
 ├── components/          # Reusable components
 │   ├── __init__.py
 │   ├── utils.py         # API utilities and helpers
@@ -15,7 +16,7 @@ frontend/
 │   └── tables.py        # Table display components
 ├── pages/               # Individual page modules
 │   ├── __init__.py
-│   ├── dashboard.py     # Dashboard logic
+│   ├── Dashboard.py     # Dashboard logic
 │   ├── Users.py         # User management page
 │   ├── Courses.py       # Course management page
 │   └── Enrollments.py   # Enrollment management page
@@ -47,7 +48,7 @@ make start  # Starts all services including frontend
 
 ### Manual Run (if needed)
 ```bash
-streamlit run frontend/main.py
+streamlit run frontend/Home.py
 ```
 
 ### Navigation
@@ -74,7 +75,7 @@ streamlit run frontend/main.py
 
 ## 📁 Key Files
 
-- **`main.py`**: Entry point, shows dashboard
+- **`Home.py`**: Entry point, shows dashboard
 - **`config.py`**: All configuration and styling
 - **`components/utils.py`**: API communication functions
 - **`components/forms.py`**: All form components

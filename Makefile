@@ -17,8 +17,9 @@ AWS_PROFILE := ScottLMS-Permission-Set-055239228382
 
 # Colors for output
 RED := \033[0;31m
-GREEN := \033[0;32m
+ORANGE := \033[38;5;208m
 YELLOW := \033[1;33m
+GREEN := \033[0;32m
 BLUE := \033[0;34m
 NC := \033[0m # No Color
 
@@ -57,14 +58,17 @@ dev-setup: ## Set up development environment
 	@echo "$(GREEN)Development environment setup complete!$(NC)"
 
 dev: ## Start development environment with Docker Compose
+	@echo "$(GREEN)Building Docker images...$(NC)"
+	docker-compose build --parallel --no-cache
 	@echo "$(GREEN)Starting development environment...$(NC)"
 	docker-compose up -d
 	@echo "$(YELLOW)Waiting for all services to be healthy...$(NC)"
-	@timeout 120 bash -c 'until docker-compose ps | grep -q "healthy"; do sleep 2; done' || echo "$(RED)Warning: Some services may not be fully healthy yet$(NC)"
+	@timeout 120 bash -c 'until docker-compose ps | grep -q "healthy"; do sleep 2; done' || echo "$(ORANGE)Warning: Some services may not be fully healthy yet$(NC)"
 	@echo "$(GREEN)Development environment started!$(NC)"
 	@echo "$(BLUE)Access URLs:$(NC)"
-	@echo "  • API: http://localhost"
-	@echo "  • API Docs: http://localhost/docs"
+	@echo "  • Frontend (UI): http://localhost"
+	@echo "  • API: http://localhost:8000"
+	@echo "  • API Docs: http://localhost:8000/docs"
 	@echo "  • MongoDB Express: http://localhost:8081 (admin/admin)"
 
 dev-logs: ## View development environment logs
@@ -184,7 +188,7 @@ db-shell: ## Connect to MongoDB shell
 	docker-compose exec mongodb mongosh scottlms
 
 db-reset: ## Reset database (WARNING: This will delete all data)
-	@echo "$(YELLOW)WARNING: This will delete all data in the database!$(NC)"
+	@echo "$(ORANGE)WARNING: This will delete all data in the database!$(NC)"
 	@read -p "Are you sure? (y/N): " confirm && [ "$$confirm" = "y" ]
 	docker-compose exec mongodb mongosh scottlms --eval "db.dropDatabase()"
 	@echo "$(GREEN)Database reset complete!$(NC)"
@@ -195,6 +199,7 @@ db-backup: ## Backup database
 	docker-compose exec mongodb mongodump --db scottlms --out /tmp/backup
 	docker cp $$(docker-compose ps -q mongodb):/tmp/backup ./backups/backup-$$(date +%Y%m%d-%H%M%S)
 	@echo "$(GREEN)Database backup created!$(NC)"
+
 
 ##@ AWS Authentication
 aws-login: ## Login to AWS SSO and get temporary credentials (interactive)
@@ -503,6 +508,7 @@ stop: dev-stop ## Stop development environment
 destroy: dev-stop ## Destroy all development resources (containers, volumes, networks)
 	@echo "$(YELLOW)Destroying all development resources...$(NC)"
 	docker-compose down -v --remove-orphans
+	docker rmi -f $(shell docker images -q)
 	docker system prune -f
 	@echo "$(GREEN)All development resources destroyed!$(NC)"
 

@@ -1,131 +1,65 @@
 """
-ScottLMS - Learning Management System
+ScottLMS - Simplified Learning Management System
 Main FastAPI application entry point
 """
 
-import time
 from contextlib import asynccontextmanager
-
-import structlog
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.responses import JSONResponse
 
-from api.router import api_router
-from core.config import settings
-from core.database import init_db
-from core.exceptions import ScottLMSException
-
-# Configure structured logging
-structlog.configure(
-    processors=[
-        structlog.stdlib.filter_by_level,
-        structlog.stdlib.add_logger_name,
-        structlog.stdlib.add_log_level,
-        structlog.stdlib.PositionalArgumentsFormatter(),
-        structlog.processors.TimeStamper(fmt="iso"),
-        structlog.processors.StackInfoRenderer(),
-        structlog.processors.format_exc_info,
-        structlog.processors.UnicodeDecoder(),
-        structlog.processors.JSONRenderer(),
-    ],
-    context_class=dict,
-    logger_factory=structlog.stdlib.LoggerFactory(),
-    wrapper_class=structlog.stdlib.BoundLogger,
-    cache_logger_on_first_use=True,
-)
-
-logger = structlog.get_logger()
+from database import init_db
+from logs import setup_logging
+from routers import users, courses, enrollments
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan events"""
     # Startup
-    logger.info("Starting ScottLMS application")
     await init_db()
-    logger.info("Database initialized successfully")
     yield
-    # Shutdown
-    logger.info("Shutting down ScottLMS application")
+    # Shutdown - cleanup if needed
 
 
 # Create FastAPI application
 app = FastAPI(
     title="ScottLMS",
-    description="A modern Learning Management System built with FastAPI and MongoDB",
+    description="A simplified Learning Management System",
     version="1.0.0",
-    openapi_url="/openapi.json",
     lifespan=lifespan,
 )
 
-# Add middleware
+# Setup logging
+setup_logging()
+
+# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.BACKEND_CORS_ORIGINS,
+    allow_origins=["*"],  # Configure as needed
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.ALLOWED_HOSTS)
 
-
-@app.middleware("http")
-async def log_requests(request: Request, call_next):
-    """Log all requests"""
-    start_time = time.time()
-
-    # Log request
-    logger.info(
-        "Request started",
-        method=request.method,
-        url=str(request.url),
-        client_ip=request.client.host if request.client else None,
-    )
-
-    response = await call_next(request)
-
-    # Log response
-    process_time = time.time() - start_time
-    logger.info(
-        "Request completed",
-        method=request.method,
-        url=str(request.url),
-        status_code=response.status_code,
-        process_time=process_time,
-    )
-
-    return response
-
-
-@app.exception_handler(ScottLMSException)
-async def scottlms_exception_handler(request: Request, exc: ScottLMSException):
-    """Handle custom ScottLMS exceptions"""
-    logger.error(
-        "ScottLMS exception occurred", exception=str(exc), url=str(request.url)
-    )
-    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+@app.get("/")
+async def root():
+    """Root endpoint"""
+    return {"message": "Welcome to ScottLMS", "version": "1.0.0"}
 
 
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
-    return {"status": "healthy", "service": "ScottLMS", "version": "1.0.0"}
+    return {"status": "healthy"}
 
 
-@app.get("/")
-async def root():
-    """Root endpoint"""
-    return {"message": "Welcome to ScottLMS", "version": "1.0.0", "docs": "/docs"}
-
-
-# Include API router
-app.include_router(api_router)
+# Include API routers
+app.include_router(users.router, prefix="/api/users", tags=["users"])
+app.include_router(courses.router, prefix="/api/courses", tags=["courses"])
+app.include_router(enrollments.router, prefix="/api/enrollments", tags=["enrollments"])
 
 
 if __name__ == "__main__":
     import uvicorn
-
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True, log_level="info")  # nosec B104
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

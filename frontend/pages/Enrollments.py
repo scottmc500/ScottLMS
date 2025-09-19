@@ -4,8 +4,7 @@ Enrollment Management Page
 
 import streamlit as st
 
-from frontend.components.forms import create_enrollment_form
-from frontend.components.tables import display_enrollments
+from frontend.components.enrollments import create_enrollment_form, display_enrollments
 from frontend.components.utils import get_api_status
 from frontend.config import CUSTOM_CSS, PAGE_CONFIG
 
