@@ -18,7 +18,6 @@ st.markdown(
 )
 
 # API Status in sidebar
-st.sidebar.markdown("---")
 st.sidebar.subheader("API Status")
 
 health_result = get_api_status()

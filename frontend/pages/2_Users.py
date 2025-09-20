@@ -16,7 +16,6 @@ st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 st.markdown('<h1 class="main-header">👥 User Management</h1>', unsafe_allow_html=True)
 
 # API Status in sidebar
-st.sidebar.markdown("---")
 st.sidebar.subheader("API Status")
 
 health_result = get_api_status()

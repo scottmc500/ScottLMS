@@ -16,10 +16,10 @@ frontend/
 │   └── tables.py        # Table display components
 ├── pages/               # Individual page modules
 │   ├── __init__.py
-│   ├── Dashboard.py     # Dashboard logic
-│   ├── Users.py         # User management page
-│   ├── Courses.py       # Course management page
-│   └── Enrollments.py   # Enrollment management page
+│   ├── 1_Dashboard.py   # Dashboard logic
+│   ├── 2_Users.py       # User management page
+│   ├── 3_Courses.py     # Course management page
+│   └── 4_Enrollments.py # Enrollment management page
 └── README.md            # This file
 ```
 
@@ -60,7 +60,7 @@ streamlit run frontend/Home.py
 
 ### Adding a New Page
 1. Create a new file in `pages/` (e.g., `Analytics.py`)
-2. Use descriptive names (e.g., `Users.py`, `Courses.py`)
+2. Use descriptive names (e.g., `2_Users.py`, `3_Courses.py`)
 3. Import necessary components from `components/`
 4. Streamlit will automatically add it to the sidebar
 

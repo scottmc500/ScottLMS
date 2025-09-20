@@ -20,7 +20,6 @@ st.markdown(
 )
 
 # API Status in sidebar
-st.sidebar.markdown("---")
 st.sidebar.subheader("API Status")
 
 health_result = get_api_status()
@@ -86,28 +85,28 @@ col1, col2, col3, col4 = st.columns(4)
 with col1:
     if st.button("👥 Manage Users", use_container_width=True):
         try:
-            st.switch_page("pages/Users.py")
+            st.switch_page("pages/2_Users.py")
         except AttributeError:
             st.info("👥 Navigate to **Users** page using the sidebar menu")
 
 with col2:
     if st.button("📚 Manage Courses", use_container_width=True):
         try:
-            st.switch_page("pages/Courses.py")
+            st.switch_page("pages/3_Courses.py")
         except AttributeError:
             st.info("📚 Navigate to **Courses** page using the sidebar menu")
 
 with col3:
     if st.button("📝 Manage Enrollments", use_container_width=True):
         try:
-            st.switch_page("pages/Enrollments.py")
+            st.switch_page("pages/4_Enrollments.py")
         except AttributeError:
             st.info("📝 Navigate to **Enrollments** page using the sidebar menu")
 
 with col4:
     if st.button("📊 View Dashboard", use_container_width=True):
         try:
-            st.switch_page("pages/Dashboard.py")
+            st.switch_page("pages/1_Dashboard.py")
         except AttributeError:
             st.info("📊 Navigate to **Dashboard** page using the sidebar menu")
 

@@ -24,7 +24,6 @@ def show_dashboard():
     st.markdown("View and analyze all your LMS data in detail. Use this page for comprehensive data management tasks.")
 
     # API Status check
-    st.sidebar.markdown("---")
     st.sidebar.subheader("API Status")
 
     health_result = get_api_status()
