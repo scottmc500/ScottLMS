@@ -1,14 +1,28 @@
-# ScottLMS Terraform Variables Example
-# Copy this file to terraform.tfvars and update with your actual values
+# ScottLMS Terraform Variables - Simplified for CI/CD
+# Only essential variables that need to be passed from CI/CD pipeline
 
-# AWS Configuration (Optional - uses defaults if not specified)
-# aws_region = "us-east-1"
-# project_name = "scottlms"
-# domain_name = "scottlms.com"
+# === REQUIRED VARIABLES (Must be set in CI/CD) ===
+atlas_public_key  = "your_public_key_here"
+atlas_private_key = "your_private_key_here"
+atlas_org_id      = "your_org_id_here"
+atlas_project_id  = "your_project_id_here"  # Optional - leave empty to create new project
 
-# DocumentDB Configuration (Optional - uses defaults if not specified)
-# documentdb_instance_class = "db.t3.medium"
-# documentdb_instance_count = 1
+# === OPTIONAL OVERRIDES (Can be set in CI/CD) ===
+app_image_tag        = "latest"      # Docker image tag
+atlas_cluster_tier   = "M10"         # M0, M2, M5, M10, M20, M30, M40, M50, M60, M80, M100, M140, M200, M300, M400, M500
+app_replicas         = 2             # Number of application replicas
+domain_name          = ""            # Optional - leave empty for LoadBalancer access
 
-# Application Configuration (Optional - uses defaults if not specified)
-# image_tag = "latest"
+# === ALL OTHER SETTINGS USE SENSIBLE DEFAULTS ===
+# Project name: "scottlms"
+# Environment: "production" (fixed)
+# MongoDB cluster name: "scottlms-cluster"  
+# Database name: "scottlms"
+# Kubernetes namespace: "scottlms"
+# Provider: AWS
+# Region: US_EAST_1
+# Resource limits: 100m CPU, 256Mi RAM (requests), 500m CPU, 512Mi RAM (limits)
+# Security: RBAC enabled, Network policies enabled
+# Monitoring: Enabled with info log level
+# Backups: Enabled with 7-day retention
+# SSL: Enabled (if domain provided)

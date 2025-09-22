@@ -28,32 +28,32 @@ async def create_user(user_data: UserCreate):
         if existing_user:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="User with this email already exists"
+                detail="User with this email already exists",
             )
-        
+
         # Create new user
         user_dict = user_data.dict()
         password = user_dict.pop("password")
         user_dict["hashed_password"] = hash_password(password)
-        
+
         user = User(**user_dict)
         await user.save()
-        
+
         logger.info(f"Created user: {user.email}")
         user_dict = user.dict()
         # Handle both _id and id cases
-        if '_id' in user_dict:
-            user_dict['id'] = user_dict.pop('_id')
-        elif 'id' not in user_dict:
+        if "_id" in user_dict:
+            user_dict["id"] = user_dict.pop("_id")
+        elif "id" not in user_dict:
             # If neither _id nor id exists, use the user.id property
-            user_dict['id'] = user.id
+            user_dict["id"] = user.id
         return UserResponse(**user_dict)
-        
+
     except Exception as e:
         logger.error(f"Error creating user: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create user"
+            detail="Failed to create user",
         )
 
 
@@ -67,18 +67,18 @@ async def get_users():
             user_dict = user.dict()
             logger.debug(f"User dict keys: {list(user_dict.keys())}")
             # Handle both _id and id cases
-            if '_id' in user_dict:
-                user_dict['id'] = user_dict.pop('_id')
-            elif 'id' not in user_dict:
+            if "_id" in user_dict:
+                user_dict["id"] = user_dict.pop("_id")
+            elif "id" not in user_dict:
                 # If neither _id nor id exists, use the user.id property
-                user_dict['id'] = user.id
+                user_dict["id"] = user.id
             result.append(UserResponse(**user_dict))
         return result
     except Exception as e:
         logger.error(f"Error fetching users: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to fetch users"
+            detail="Failed to fetch users",
         )
 
 
@@ -89,16 +89,15 @@ async def get_user(user_id: PydanticObjectId):
         user = await User.get(user_id)
         if not user:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
             )
         user_dict = user.dict()
         # Handle both _id and id cases
-        if '_id' in user_dict:
-            user_dict['id'] = user_dict.pop('_id')
-        elif 'id' not in user_dict:
+        if "_id" in user_dict:
+            user_dict["id"] = user_dict.pop("_id")
+        elif "id" not in user_dict:
             # If neither _id nor id exists, use the user.id property
-            user_dict['id'] = user.id
+            user_dict["id"] = user.id
         return UserResponse(**user_dict)
     except HTTPException:
         raise
@@ -106,7 +105,7 @@ async def get_user(user_id: PydanticObjectId):
         logger.error(f"Error fetching user {user_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to fetch user"
+            detail="Failed to fetch user",
         )
 
 
@@ -117,33 +116,32 @@ async def update_user(user_id: PydanticObjectId, user_data: UserUpdate):
         user = await User.get(user_id)
         if not user:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
             )
-        
+
         # Update fields
         update_data = user_data.dict(exclude_unset=True)
         for field, value in update_data.items():
             setattr(user, field, value)
-        
+
         await user.save()
         logger.info(f"Updated user: {user.email}")
         user_dict = user.dict()
         # Handle both _id and id cases
-        if '_id' in user_dict:
-            user_dict['id'] = user_dict.pop('_id')
-        elif 'id' not in user_dict:
+        if "_id" in user_dict:
+            user_dict["id"] = user_dict.pop("_id")
+        elif "id" not in user_dict:
             # If neither _id nor id exists, use the user.id property
-            user_dict['id'] = user.id
+            user_dict["id"] = user.id
         return UserResponse(**user_dict)
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error updating user {user_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to update user"
+            detail="Failed to update user",
         )
 
 
@@ -154,19 +152,17 @@ async def delete_user(user_id: PydanticObjectId):
         user = await User.get(user_id)
         if not user:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
             )
-        
+
         await user.delete()
         logger.info(f"Deleted user: {user.email}")
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error deleting user {user_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to delete user"
+            detail="Failed to delete user",
         )
-

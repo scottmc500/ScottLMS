@@ -1,32 +1,52 @@
-# Variables for ScottLMS AWS Infrastructure
+# ScottLMS Terraform Variables - Streamlined for CI/CD
+# Only essential variables that need to be passed from CI/CD pipeline
 
-# Core Configuration
-variable "aws_region" {
-  description = "AWS region"
+# === ESSENTIAL VARIABLES (Must be set in CI/CD) ===
+variable "atlas_public_key" {
+  description = "MongoDB Atlas public API key"
   type        = string
-  default     = "us-east-1"
+  sensitive   = true
 }
 
-variable "project_name" {
-  description = "Name of the project"
+variable "atlas_private_key" {
+  description = "MongoDB Atlas private API key"
   type        = string
-  default     = "scottlms"
+  sensitive   = true
 }
 
-
-variable "domain_name" {
-  description = "Domain name for the application"
+variable "atlas_org_id" {
+  description = "MongoDB Atlas organization ID"
   type        = string
-  default     = "scottlms.local"
 }
 
-# DocumentDB Configuration (Optional - uses defaults if not specified)
-# documentdb_instance_class = "db.t3.medium"
-# documentdb_instance_count = 1
+variable "atlas_project_id" {
+  description = "MongoDB Atlas project ID (optional - leave empty to create new)"
+  type        = string
+  default     = ""
+}
 
-# Application Configuration
-variable "image_tag" {
+# === OPTIONAL OVERRIDES (Can be set in CI/CD) ===
+
+variable "app_image_tag" {
   description = "Docker image tag for the application"
   type        = string
   default     = "latest"
+}
+
+variable "atlas_cluster_tier" {
+  description = "MongoDB Atlas cluster tier (M0, M2, M5, M10, etc.)"
+  type        = string
+  default     = "M10"
+}
+
+variable "app_replicas" {
+  description = "Number of application replicas"
+  type        = number
+  default     = 2
+}
+
+variable "domain_name" {
+  description = "Domain name for the application (optional - leave empty for LoadBalancer)"
+  type        = string
+  default     = ""
 }

@@ -19,9 +19,11 @@ def show_dashboard():
     st.markdown(
         '<h1 class="main-header">📊 Data Dashboard</h1>', unsafe_allow_html=True
     )
-    
+
     st.markdown("### 🔍 Detailed Data Management & Analytics")
-    st.markdown("View and analyze all your LMS data in detail. Use this page for comprehensive data management tasks.")
+    st.markdown(
+        "View and analyze all your LMS data in detail. Use this page for comprehensive data management tasks."
+    )
 
     # API Status check
     st.sidebar.subheader("API Status")

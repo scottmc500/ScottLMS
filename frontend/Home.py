@@ -15,8 +15,7 @@ st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
 # Header
 st.markdown(
-    '<h1 class="main-header">🎓 Welcome to ScottLMS</h1>', 
-    unsafe_allow_html=True
+    '<h1 class="main-header">🎓 Welcome to ScottLMS</h1>', unsafe_allow_html=True
 )
 
 # API Status in sidebar
@@ -33,7 +32,8 @@ else:
 
 # Main content
 st.markdown("### 👋 Getting Started")
-st.markdown("""
+st.markdown(
+    """
 Welcome to your Learning Management System! ScottLMS helps you manage users, courses, and enrollments all in one place.
 
 Use the navigation menu on the left to:
@@ -41,33 +41,34 @@ Use the navigation menu on the left to:
 - 📚 **Courses**: Create and manage courses  
 - 📝 **Enrollments**: Track student enrollments
 - 📊 **Dashboard**: View detailed data and analytics
-""")
+"""
+)
 
 # Quick Stats Section
 st.markdown("### 📊 Quick Stats")
 
 if api_connected:
     col1, col2, col3 = st.columns(3)
-    
+
     # Get stats from API
     users_result = make_api_request("GET", "/api/users/")
     courses_result = make_api_request("GET", "/api/courses/")
     enrollments_result = make_api_request("GET", "/api/enrollments/")
-    
+
     with col1:
         if users_result["success"]:
             user_count = len(users_result["data"])
             st.metric("👥 Total Users", user_count)
         else:
             st.metric("👥 Total Users", "Error")
-    
+
     with col2:
         if courses_result["success"]:
             course_count = len(courses_result["data"])
             st.metric("📚 Total Courses", course_count)
         else:
             st.metric("📚 Total Courses", "Error")
-    
+
     with col3:
         if enrollments_result["success"]:
             enrollment_count = len(enrollments_result["data"])
@@ -115,10 +116,14 @@ st.markdown("### 📋 System Status")
 
 if api_connected:
     st.success("✅ All systems operational")
-    st.info("💡 **Tip**: Use the Dashboard page for detailed data management and analytics")
+    st.info(
+        "💡 **Tip**: Use the Dashboard page for detailed data management and analytics"
+    )
 else:
     st.error("❌ API connection issues detected")
-    st.warning("🔧 Please check that the backend API is running on http://localhost:8000")
+    st.warning(
+        "🔧 Please check that the backend API is running on http://localhost:8000"
+    )
 
 # Footer
 st.markdown("---")

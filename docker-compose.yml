@@ -1,6 +1,8 @@
 services:
   api:
     container_name: scottlms-api
+    image: smchenry2014/scottlms-api:latest
+    platform: linux/amd64
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -71,6 +73,8 @@ services:
 
   ui:
     container_name: scottlms-ui
+    image: smchenry2014/scottlms-ui:latest
+    platform: linux/amd64
     build:
       context: ./frontend
       dockerfile: Dockerfile

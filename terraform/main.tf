@@ -1,89 +1,102 @@
-# ScottLMS AWS Infrastructure
+# ScottLMS Terraform Main Configuration
+# Provider configurations and module calls
+
+# Configure Terraform version and backend
 terraform {
-  required_version = ">= 1.0"
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
+  backend "remote" {
+    hostname = "app.terraform.io"
+    organization = "scottmc500"  # Replace with your Terraform Cloud organization name
+    
+    workspaces {
+      name = "scottlms-production"  # Replace with your desired workspace name
     }
+  }
+  
+  required_providers {
+    # Kubernetes provider for managing K8s resources
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = "~> 2.20"
+    }
+    
+    # MongoDB Atlas provider for database resources
+    mongodbatlas = {
+      source  = "mongodb/mongodbatlas"
+      version = "~> 1.0"
+    }
+    
+    # Random provider for generating random values
     random = {
       source  = "hashicorp/random"
-      version = "~> 3.1"
-    }
-  }
-  
-  backend "s3" {
-    bucket = "scottlms-terraform-state"
-    key    = "terraform.tfstate"
-    region = "us-east-1"
-  }
-}
-
-# Configure the AWS Provider
-provider "aws" {
-  region = var.aws_region
-  
-  default_tags {
-    tags = {
-      Project     = "ScottLMS"
-      Environment = "production"
-      ManagedBy   = "Terraform"
+      version = "~> 3.0"
     }
   }
 }
 
-# DocumentDB is managed by AWS - no separate provider needed!
-
-# Data sources
-data "aws_availability_zones" "available" {
-  state = "available"
+# Configure Kubernetes Provider
+provider "kubernetes" {
+  # You'll need to configure this with your existing cluster's kubeconfig
+  # Options:
+  # 1. Set config_path to your kubeconfig file
+  # 2. Use config_context_auth_info and config_context_cluster
+  # 3. Set via environment variables KUBE_CONFIG_PATH
+  config_path = local.k8s_config.kubeconfig_path
 }
 
-data "aws_caller_identity" "current" {}
+# Configure MongoDB Atlas Provider
+provider "mongodbatlas" {
+  public_key  = var.atlas_public_key
+  private_key = var.atlas_private_key
+}
 
-# Local values
+# Local values for computed resources
 locals {
-  name = "${var.project_name}-production"
+  # Project configuration
+  project_name = "scottlms"
+  environment  = "production"
+  region       = "us-east"
   
+  # Common tags for all resources
   common_tags = {
-    Project     = var.project_name
-    Environment = "production"
-    ManagedBy   = "Terraform"
+    Project     = local.project_name
+    Environment = local.environment
+    ManagedBy   = "terraform"
+    CreatedBy   = "scottlms"
   }
-}
-
-# VPC Module
-module "vpc" {
-  source = "terraform-aws-modules/vpc/aws"
-  version = "~> 5.0"
-
-  name = local.name
-  cidr = "10.0.0.0/16"
-
-  azs             = ["us-east-1a", "us-east-1b", "us-east-1c"]
-  private_subnets = ["10.0.11.0/24", "10.0.12.0/24", "10.0.13.0/24"]
-  public_subnets  = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
-
-  enable_nat_gateway     = true
-  single_nat_gateway     = false
-  enable_vpn_gateway     = false
-  enable_dns_hostnames   = true
-  enable_dns_support     = true
-
-  # Enable flow logs
-  enable_flow_log                      = true
-  create_flow_log_cloudwatch_iam_role  = true
-  create_flow_log_cloudwatch_log_group = true
-
-  public_subnet_tags = {
-    "kubernetes.io/role/elb" = "1"
-    "kubernetes.io/cluster/${local.name}" = "shared"
+  
+  # Naming convention
+  name_prefix = "${local.project_name}-${local.environment}"
+  
+  # MongoDB Atlas configuration with defaults
+  mongodb_config = {
+    cluster_name           = "${local.project_name}-cluster"
+    provider_name          = "AWS"
+    provider_region_name   = "US_EAST_1"
+    database_name          = local.project_name
   }
-
-  private_subnet_tags = {
-    "kubernetes.io/role/internal-elb" = "1"
-    "kubernetes.io/cluster/${local.name}" = "shared"
+  
+  # Kubernetes configuration with defaults
+  k8s_config = {
+    namespace = local.project_name
+    kubeconfig_path = "~/.kube/config"
   }
-
-  tags = local.common_tags
+  
+  # Application configuration with defaults
+  app_config = {
+    cpu_request    = "100m"
+    memory_request = "256Mi"
+    cpu_limit      = "500m"
+    memory_limit   = "512Mi"
+    log_level      = "info"
+  }
+  
+  # Security and monitoring defaults
+  security_config = {
+    enable_rbac             = true
+    enable_network_policies = true
+    enable_monitoring       = true
+    enable_backups          = true
+    backup_retention_days   = 7
+    ssl_enabled            = true
+  }
 }

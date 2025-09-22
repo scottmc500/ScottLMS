@@ -35,9 +35,9 @@ def display_user_details(user):
             st.rerun()
 
     # Show edit form if editing
-    if hasattr(st.session_state, "selected_user_for_edit") and st.session_state.selected_user_for_edit.get(
-        "id"
-    ) == user.get("id"):
+    if hasattr(
+        st.session_state, "selected_user_for_edit"
+    ) and st.session_state.selected_user_for_edit.get("id") == user.get("id"):
         edit_user_form(st.session_state.selected_user_for_edit)
 
     # Show delete confirmation if deleting
@@ -71,9 +71,13 @@ def display_users():
         # Search and filter
         col1, col2, col3 = st.columns(3)
         with col1:
-            search_term = st.text_input("🔍 Search users", placeholder="Search by name, email, or username")
+            search_term = st.text_input(
+                "🔍 Search users", placeholder="Search by name, email, or username"
+            )
         with col2:
-            role_filter = st.selectbox("Filter by role", ["All", "student", "instructor", "admin"])
+            role_filter = st.selectbox(
+                "Filter by role", ["All", "student", "instructor", "admin"]
+            )
         with col3:
             sort_by = st.selectbox("Sort by", ["Name", "Email", "Role", "Created"])
 
@@ -82,11 +86,14 @@ def display_users():
         if search_term:
             search_lower = search_term.lower()
             filtered_users = [
-                u for u in filtered_users
-                if (search_lower in u.get("first_name", "").lower()
+                u
+                for u in filtered_users
+                if (
+                    search_lower in u.get("first_name", "").lower()
                     or search_lower in u.get("last_name", "").lower()
                     or search_lower in u.get("email", "").lower()
-                    or search_lower in u.get("username", "").lower())
+                    or search_lower in u.get("username", "").lower()
+                )
             ]
 
         if role_filter != "All":
@@ -94,7 +101,9 @@ def display_users():
 
         # Sort users
         if sort_by == "Name":
-            filtered_users.sort(key=lambda x: f"{x.get('first_name', '')} {x.get('last_name', '')}")
+            filtered_users.sort(
+                key=lambda x: f"{x.get('first_name', '')} {x.get('last_name', '')}"
+            )
         elif sort_by == "Email":
             filtered_users.sort(key=lambda x: x.get("email", ""))
         elif sort_by == "Role":
@@ -105,44 +114,58 @@ def display_users():
         # Display filtered results
         if filtered_users:
             st.info(f"Showing {len(filtered_users)} of {len(users)} users")
-            
+
             # Pagination
             items_per_page = 5
             total_pages = (len(filtered_users) + items_per_page - 1) // items_per_page
-            
+
             if total_pages > 1:
                 # Initialize page state
                 if "users_current_page" not in st.session_state:
                     st.session_state.users_current_page = 1
-                
+
                 # Navigation controls with better column spacing
                 nav_col1, nav_col2, nav_col3 = st.columns([2, 3, 2])
-                
+
                 with nav_col1:
-                    if st.button("⬅️ Prev", disabled=st.session_state.users_current_page <= 1, key="users_prev"):
+                    if st.button(
+                        "⬅️ Prev",
+                        disabled=st.session_state.users_current_page <= 1,
+                        key="users_prev",
+                    ):
                         st.session_state.users_current_page -= 1
                         st.rerun()
-                
+
                 with nav_col2:
                     page = st.selectbox(
                         "Page",
                         range(1, total_pages + 1),
                         index=st.session_state.users_current_page - 1,
                         key="users_page_selector",
-                        on_change=lambda: setattr(st.session_state, "users_current_page", st.session_state.users_page_selector)
+                        on_change=lambda: setattr(
+                            st.session_state,
+                            "users_current_page",
+                            st.session_state.users_page_selector,
+                        ),
                     )
-                
+
                 with nav_col3:
-                    if st.button("Next ➡️", disabled=st.session_state.users_current_page >= total_pages, key="users_next"):
+                    if st.button(
+                        "Next ➡️",
+                        disabled=st.session_state.users_current_page >= total_pages,
+                        key="users_next",
+                    ):
                         st.session_state.users_current_page += 1
                         st.rerun()
-                
+
                 # Calculate start and end indices
                 start_idx = (st.session_state.users_current_page - 1) * items_per_page
                 end_idx = min(start_idx + items_per_page, len(filtered_users))
-                
-                st.info(f"Showing users {start_idx + 1}-{end_idx} of {len(filtered_users)}")
-                
+
+                st.info(
+                    f"Showing users {start_idx + 1}-{end_idx} of {len(filtered_users)}"
+                )
+
                 # Display users for current page
                 for user in filtered_users[start_idx:end_idx]:
                     display_user_details(user)

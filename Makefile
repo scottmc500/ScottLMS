@@ -44,6 +44,11 @@ setup: ## Complete development setup
 	@echo "$(GREEN)Setup complete!$(NC)"
 
 ##@ Development
+build: ## Build development environment with Docker
+	@echo "$(GREEN)Building development environment...$(NC)"
+	docker-compose build --parallel --no-cache
+	@echo "$(GREEN)Development environment built!$(NC)"
+
 start: ## Start development environment with Docker
 	@echo "$(GREEN)Starting development environment...$(NC)"
 	docker-compose up -d
@@ -61,64 +66,89 @@ stop: ## Stop development environment
 	@echo "$(GREEN)Stopping development environment...$(NC)"
 	docker-compose down
 
-restart: stop ## Restart development environment
-	@echo "$(GREEN)Restarting development environment...$(NC)"
-	docker-compose build --parallel --no-cache
-	make start
+restart: stop build start ## Restart development environment
 
 destroy: ## Destroy all development resources (containers, volumes, networks)
-	@echo "$(YELLOW)Destroying all development resources...$(NC)"
+	@echo "$(GREEN)Cleaning up everything...$(NC)"
 	docker-compose down -v --remove-orphans
 	docker rmi -f $(shell docker images -q)
-	docker system prune -f
+	docker system prune -af
+	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+	find . -type f -name "*.pyc" -delete 2>/dev/null || true
+	rm -rf .pytest_cache/ htmlcov/ .coverage
 	@echo "$(GREEN)All development resources destroyed!$(NC)"
+
+push: build ## Push Docker images to Docker Hub
+	@echo "$(GREEN)Pushing Docker images to Docker Hub...$(NC)"
+	docker-compose push --parallel
+	@echo "$(GREEN)Docker images pushed to Docker Hub!$(NC)"
+
+##@ Terraform Commands
+infra-init: ## Initialize Terraform
+	@echo "$(GREEN)Initializing Terraform...$(NC)"
+	terraform -chdir=terraform init
+	@echo "$(GREEN)Terraform initialized!$(NC)"
+
+infra-validate: ## Validate Terraform
+	@echo "$(GREEN)Validating Terraform...$(NC)"
+	terraform -chdir=terraform validate
+	@echo "$(GREEN)Terraform validated!$(NC)"
+
+infra-plan: ## Plan Terraform
+	@echo "$(GREEN)Planning Terraform...$(NC)"
+	terraform -chdir=terraform plan -out=tfplan
+	@echo "$(GREEN)Terraform planned!$(NC)"
+
+infra-apply: ## Apply Terraform
+	@echo "$(GREEN)Applying Terraform...$(NC)"
+	terraform -chdir=terraform apply tfplan
+	@echo "$(GREEN)Terraform applied!$(NC)"
+
+infra-destroy: ## Destroy Terraform
+	@echo "$(GREEN)Destroying Terraform...$(NC)"
+	terraform -chdir=terraform destroy
+	@echo "$(GREEN)Terraform destroyed!$(NC)"
 
 ##@ Testing
 test: ## Run tests
 	@echo "$(GREEN)Running tests...$(NC)"
-	. venv/bin/activate && python -m pytest backend/ frontend/ -v
+	python -m pytest backend/ frontend/ -v
 
 test-backend: ## Run backend tests only
 	@echo "$(GREEN)Running backend tests...$(NC)"
-	. venv/bin/activate && python -m pytest backend/ -v
+	python -m pytest backend/ -v
 
 test-frontend: ## Run frontend tests only
 	@echo "$(GREEN)Running frontend tests...$(NC)"
-	. venv/bin/activate && python -m pytest frontend/ -v
+	python -m pytest frontend/ -v
 
 test-coverage: ## Run tests with coverage
 	@echo "$(GREEN)Running tests with coverage...$(NC)"
-	. venv/bin/activate && python -m pytest --cov=backend --cov=frontend --cov-report=html --cov-report=term
+	python -m pytest --cov=backend --cov=frontend --cov-report=html --cov-report=term
 
 ##@ Code Quality
 format: ## Format code with black
 	@echo "$(GREEN)Formatting code...$(NC)"
-	. venv/bin/activate && black backend/ frontend/
+	black backend/ frontend/
 	@echo "$(GREEN)Code formatted!$(NC)"
 
 lint: ## Lint code with flake8
 	@echo "$(GREEN)Linting code...$(NC)"
-	. venv/bin/activate && flake8 backend/ frontend/
+	flake8 backend/ frontend/
+	@echo "$(GREEN)Linting complete!$(NC)"
 
 lint-fix: ## Fix linting issues
 	@echo "$(GREEN)Fixing linting issues...$(NC)"
-	. venv/bin/activate && autopep8 --in-place --recursive backend/ frontend/
+	autopep8 --in-place --recursive backend/ frontend/
+	@echo "$(GREEN)Linting issues fixed!$(NC)"
 
 quality: format lint ## Run all code quality checks
 
 ##@ Building & Deployment
 build: ## Build Docker images
 	@echo "$(GREEN)Building Docker images...$(NC)"
-	docker-compose build
+	docker-compose build --parallel --no-cache
 	@echo "$(GREEN)Build complete!$(NC)"
-
-build-backend: ## Build backend Docker image
-	@echo "$(GREEN)Building backend image...$(NC)"
-	docker build -t $(PROJECT_NAME)-backend backend/
-
-build-frontend: ## Build frontend Docker image
-	@echo "$(GREEN)Building frontend image...$(NC)"
-	docker build -t $(PROJECT_NAME)-frontend frontend/
 
 ##@ Database
 db-shell: ## Connect to MongoDB shell
@@ -129,23 +159,6 @@ db-reset: ## Reset database (WARNING: deletes all data)
 	@read -p "Are you sure? (y/N): " confirm && [ "$$confirm" = "y" ]
 	docker-compose exec mongodb mongosh scottlms --eval "db.dropDatabase()"
 	@echo "$(GREEN)Database reset!$(NC)"
-
-##@ Utilities
-clean: ## Clean up Docker resources
-	@echo "$(GREEN)Cleaning up...$(NC)"
-	docker-compose down -v
-	docker system prune -f
-
-clean-all: ## Clean up everything
-	@echo "$(GREEN)Cleaning up everything...$(NC)"
-	docker-compose down -v --remove-orphans
-	docker system prune -af
-	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
-	find . -type f -name "*.pyc" -delete 2>/dev/null || true
-	rm -rf .pytest_cache/ htmlcov/ .coverage
-
-##@ Quick Commands
-# start, stop, restart are already defined above
 
 test-all: test test-coverage ## Run all tests with coverage
 build-all: build test quality ## Build, test, and quality check

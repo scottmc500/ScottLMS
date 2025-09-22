@@ -69,7 +69,9 @@ def create_enrollment_form():
                 result = make_api_request("POST", "/api/enrollments/", enrollment_data)
 
                 if result["success"]:
-                    st.success("✅ Enrollment created successfully! Check the 'View Enrollments' tab to see the new enrollment.")
+                    st.success(
+                        "✅ Enrollment created successfully! Check the 'View Enrollments' tab to see the new enrollment."
+                    )
                     st.rerun()
                 else:
                     st.error(f"❌ Failed to create enrollment: {result['error']}")
@@ -115,7 +117,9 @@ def edit_enrollment_form(enrollment):
                 "progress": progress,
             }
 
-            result = make_api_request("PUT", f"/api/enrollments/{enrollment.get('id')}", enrollment_data)
+            result = make_api_request(
+                "PUT", f"/api/enrollments/{enrollment.get('id')}", enrollment_data
+            )
 
             if result["success"]:
                 st.success("✅ Enrollment updated successfully!")
@@ -137,7 +141,9 @@ def delete_enrollment_form(enrollment):
     col1, col2 = st.columns(2)
     with col1:
         if st.button("Yes, Delete Enrollment", type="primary"):
-            result = make_api_request("DELETE", f"/api/enrollments/{enrollment.get('id')}")
+            result = make_api_request(
+                "DELETE", f"/api/enrollments/{enrollment.get('id')}"
+            )
 
             if result["success"]:
                 st.success("✅ Enrollment deleted successfully!")
@@ -150,6 +156,3 @@ def delete_enrollment_form(enrollment):
         if st.button("Cancel"):
             del st.session_state.delete_enrollment
             st.rerun()
-
-
-

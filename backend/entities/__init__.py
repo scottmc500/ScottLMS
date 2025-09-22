@@ -8,8 +8,15 @@ from .courses import Course, CourseCreate, CourseUpdate, CourseResponse
 from .enrollments import Enrollment, EnrollmentCreate, EnrollmentResponse
 
 __all__ = [
-    "User", "UserCreate", "UserUpdate", "UserResponse",
-    "Course", "CourseCreate", "CourseUpdate", "CourseResponse", 
-    "Enrollment", "EnrollmentCreate", "EnrollmentResponse"
+    "User",
+    "UserCreate",
+    "UserUpdate",
+    "UserResponse",
+    "Course",
+    "CourseCreate",
+    "CourseUpdate",
+    "CourseResponse",
+    "Enrollment",
+    "EnrollmentCreate",
+    "EnrollmentResponse",
 ]
-
