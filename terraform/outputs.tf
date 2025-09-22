@@ -2,10 +2,10 @@
 # Outputs for Kubernetes cluster and MongoDB Atlas resources
 
 # Kubernetes Cluster Outputs
-output "kubernetes_namespace" {
-  description = "Kubernetes namespace where the application is deployed"
-  value       = kubernetes_namespace.scottlms.metadata[0].name
-}
+# output "kubernetes_namespace" {
+#   description = "Kubernetes namespace where the application is deployed"
+#   value       = kubernetes_namespace.scottlms.metadata[0].name
+# }
 
 # MongoDB Atlas Outputs
 output "mongodb_cluster_id" {
@@ -31,10 +31,10 @@ output "mongodb_username" {
 }
 
 # Application Outputs
-output "application_namespace" {
-  description = "Kubernetes namespace where the application is deployed"
-  value       = kubernetes_namespace.scottlms.metadata[0].name
-}
+# output "application_namespace" {
+#   description = "Kubernetes namespace where the application is deployed"
+#   value       = kubernetes_namespace.scottlms.metadata[0].name
+# }
 
 # Security Outputs
 output "rbac_enabled" {
@@ -75,20 +75,20 @@ output "region" {
 }
 
 # Quick Access Commands
-output "view_pods_command" {
-  description = "Command to view application pods"
-  value       = "kubectl get pods -n ${kubernetes_namespace.scottlms.metadata[0].name}"
-}
-
-output "view_logs_command" {
-  description = "Command to view application logs"
-  value       = "kubectl logs -l app=scottlms-api -n ${kubernetes_namespace.scottlms.metadata[0].name}"
-}
-
-output "view_config_command" {
-  description = "Command to view application configuration"
-  value       = "kubectl get configmap ${local.project_name}-config -n ${kubernetes_namespace.scottlms.metadata[0].name} -o yaml"
-}
+# output "view_pods_command" {
+#   description = "Command to view application pods"
+#   value       = "kubectl get pods -n ${kubernetes_namespace.scottlms.metadata[0].name}"
+# }
+# 
+# output "view_logs_command" {
+#   description = "Command to view application logs"
+#   value       = "kubectl logs -l app=scottlms-api -n ${kubernetes_namespace.scottlms.metadata[0].name}"
+# }
+# 
+# output "view_config_command" {
+#   description = "Command to view application configuration"
+#   value       = "kubectl get configmap ${local.project_name}-config -n ${kubernetes_namespace.scottlms.metadata[0].name} -o yaml"
+# }
 
 # Resource Summary
 output "infrastructure_summary" {
@@ -102,7 +102,7 @@ output "infrastructure_summary" {
     }
     application = {
       replicas  = var.app_replicas
-      namespace = kubernetes_namespace.scottlms.metadata[0].name
+      namespace = "scottlms"  # Will be created when Kubernetes resources are enabled
     }
   }
   sensitive = true

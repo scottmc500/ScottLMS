@@ -96,12 +96,12 @@ infra-validate: ## Validate Terraform
 
 infra-plan: ## Plan Terraform
 	@echo "$(GREEN)Planning Terraform...$(NC)"
-	terraform -chdir=terraform plan -out=tfplan
+	terraform -chdir=terraform plan
 	@echo "$(GREEN)Terraform planned!$(NC)"
 
 infra-apply: ## Apply Terraform
 	@echo "$(GREEN)Applying Terraform...$(NC)"
-	terraform -chdir=terraform apply tfplan
+	terraform -chdir=terraform apply
 	@echo "$(GREEN)Terraform applied!$(NC)"
 
 infra-destroy: ## Destroy Terraform

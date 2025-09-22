@@ -34,9 +34,9 @@ variable "app_image_tag" {
 }
 
 variable "atlas_cluster_tier" {
-  description = "MongoDB Atlas cluster tier (M0, M2, M5, M10, etc.)"
+  description = "MongoDB Atlas cluster tier (M0=Free, M2, M5, M10, etc.)"
   type        = string
-  default     = "M10"
+  default     = "M0"
 }
 
 variable "app_replicas" {

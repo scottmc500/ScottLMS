@@ -35,12 +35,9 @@ terraform {
 
 # Configure Kubernetes Provider
 provider "kubernetes" {
-  # You'll need to configure this with your existing cluster's kubeconfig
-  # Options:
-  # 1. Set config_path to your kubeconfig file
-  # 2. Use config_context_auth_info and config_context_cluster
-  # 3. Set via environment variables KUBE_CONFIG_PATH
-  config_path = local.k8s_config.kubeconfig_path
+  # For Terraform Cloud, we'll use environment variables or host configuration
+  # The kubeconfig will be provided via environment variables in Terraform Cloud
+  # or configured directly in the workspace settings
 }
 
 # Configure MongoDB Atlas Provider
@@ -71,14 +68,13 @@ locals {
   mongodb_config = {
     cluster_name           = "${local.project_name}-cluster"
     provider_name          = "AWS"
-    provider_region_name   = "US_EAST_1"
+    provider_region_name   = "US_WEST_2"
     database_name          = local.project_name
   }
   
   # Kubernetes configuration with defaults
   k8s_config = {
     namespace = local.project_name
-    kubeconfig_path = "~/.kube/config"
   }
   
   # Application configuration with defaults

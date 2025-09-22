@@ -18,13 +18,13 @@ resource "mongodbatlas_cluster" "main" {
   cluster_type = "REPLICASET"
   cloud_backup = true
   
-  # Provider settings
+  # Provider settings - Free tier configuration
   provider_name         = local.mongodb_config.provider_name
   provider_instance_size_name = var.atlas_cluster_tier
   provider_region_name  = local.mongodb_config.provider_region_name
   
-  # Auto-scaling
-  auto_scaling_disk_gb_enabled = true
+  # Auto-scaling (disabled for free tier)
+  auto_scaling_disk_gb_enabled = var.atlas_cluster_tier != "M0"
 }
 
 # MongoDB Atlas Database User
