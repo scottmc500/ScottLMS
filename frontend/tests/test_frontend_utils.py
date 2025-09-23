@@ -2,7 +2,7 @@
 Tests for frontend utilities
 """
 
-from frontend.components.utils import make_api_request
+from components.utils import make_api_request
 import pytest
 import os
 import sys

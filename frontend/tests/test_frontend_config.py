@@ -2,7 +2,7 @@
 Tests for frontend configuration and utilities
 """
 
-from frontend.config import API_BASE_URL
+from config import API_BASE_URL
 import pytest
 import os
 import sys

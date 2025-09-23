@@ -73,8 +73,8 @@ resource "kubernetes_config_map" "frontend_config" {
   
   data = {
     ENVIRONMENT     = "production"
-    API_BASE_URL    = "http://scottlms-api:8000"
-    REACT_APP_API_URL = "http://scottlms-api:8000"
+    API_BASE_URL    = "http://scottlms-api-loadbalancer:8000"
+    REACT_APP_API_URL = "http://scottlms-api-loadbalancer:8000"
   }
 }
 
@@ -92,7 +92,7 @@ resource "kubernetes_deployment" "scottlms_api" {
   }
   
   spec {
-    replicas = var.app_replicas
+    replicas = 2
     
     selector {
       match_labels = {
@@ -183,7 +183,7 @@ resource "kubernetes_deployment" "scottlms_frontend" {
   }
   
   spec {
-    replicas = var.app_replicas
+    replicas = 2
     
     selector {
       match_labels = {
@@ -206,11 +206,11 @@ resource "kubernetes_deployment" "scottlms_frontend" {
         
         container {
           name              = "scottlms-frontend"
-          image             = "smchenry2014/scottlms-frontend:${var.app_image_tag}"
+          image             = "smchenry2014/scottlms-ui:${var.app_image_tag}"
           image_pull_policy = "Always"
           
           port {
-            container_port = 3000
+            container_port = 8501
             name          = "http"
           }
           
@@ -234,7 +234,7 @@ resource "kubernetes_deployment" "scottlms_frontend" {
           liveness_probe {
             http_get {
               path = "/"
-              port = 3000
+              port = 8501
             }
             initial_delay_seconds = 30
             period_seconds        = 10
@@ -243,7 +243,7 @@ resource "kubernetes_deployment" "scottlms_frontend" {
           readiness_probe {
             http_get {
               path = "/"
-              port = 3000
+              port = 8501
             }
             initial_delay_seconds = 5
             period_seconds        = 5
@@ -254,63 +254,6 @@ resource "kubernetes_deployment" "scottlms_frontend" {
   }
 }
 
-# Kubernetes Service for the application
-resource "kubernetes_service" "scottlms_api" {
-  metadata {
-    name      = "scottlms-api"
-    namespace = kubernetes_namespace.scottlms.metadata[0].name
-    
-    labels = {
-      app         = "scottlms-api"
-      environment = "production"
-      managed-by  = "terraform"
-    }
-  }
-  
-  spec {
-    selector = {
-      app = "scottlms-api"
-    }
-    
-    port {
-      name        = "http"
-      port        = 8000
-      target_port = 8000
-      protocol    = "TCP"
-    }
-    
-    type = "ClusterIP"
-  }
-}
-
-# Kubernetes Service for the frontend
-resource "kubernetes_service" "scottlms_frontend" {
-  metadata {
-    name      = "scottlms-frontend"
-    namespace = kubernetes_namespace.scottlms.metadata[0].name
-    
-    labels = {
-      app         = "scottlms-frontend"
-      environment = "production"
-      managed-by  = "terraform"
-    }
-  }
-  
-  spec {
-    selector = {
-      app = "scottlms-frontend"
-    }
-    
-    port {
-      name        = "http"
-      port        = 3000
-      target_port = 3000
-      protocol    = "TCP"
-    }
-    
-    type = "ClusterIP"
-  }
-}
 
 # Kubernetes Service for LoadBalancer (frontend external access)
 resource "kubernetes_service" "scottlms_frontend_loadbalancer" {
@@ -335,7 +278,7 @@ resource "kubernetes_service" "scottlms_frontend_loadbalancer" {
     port {
       name        = "http"
       port        = 80
-      target_port = 3000
+      target_port = 8501
       protocol    = "TCP"
     }
     

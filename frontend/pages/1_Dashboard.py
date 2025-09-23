@@ -4,11 +4,11 @@ Dashboard page - Main overview of the LMS
 
 import streamlit as st
 
-from frontend.components.users import display_users
-from frontend.components.courses import display_courses
-from frontend.components.enrollments import display_enrollments
-from frontend.components.utils import get_api_status
-from frontend.config import CUSTOM_CSS
+from components.users import display_users
+from components.courses import display_courses
+from components.enrollments import display_enrollments
+from components.utils import get_api_status
+from config import CUSTOM_CSS
 
 
 def show_dashboard():

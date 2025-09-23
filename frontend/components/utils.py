@@ -6,7 +6,7 @@ from typing import Any, Dict
 
 import requests
 
-from frontend.config import API_BASE_URL
+from config import API_BASE_URL
 
 
 def make_api_request(method: str, endpoint: str, data: Dict = None) -> Dict:

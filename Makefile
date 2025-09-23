@@ -30,7 +30,7 @@ docker-build: ## Build development environment with Docker
 	docker-compose build --parallel --no-cache
 	@echo "$(GREEN)Development environment built!$(NC)"
 
-docker-start: ## Start development environment with Docker
+docker-start: docker-build ## Start development environment with Docker
 	@echo "$(GREEN)Starting development environment...$(NC)"
 	docker-compose up -d
 	@echo "$(GREEN)Development environment started!$(NC)"
@@ -47,7 +47,9 @@ docker-stop: ## Stop development environment
 	@echo "$(GREEN)Stopping development environment...$(NC)"
 	docker-compose down
 
-docker-restart: docker-stop docker-build docker-start ## Restart development environment
+docker-restart: docker-stop docker-start ## Restart development environment
+
+docker-rebuild: docker-destroy docker-start ## Rebuild development environment
 
 docker-destroy: ## Destroy all development resources (containers, volumes, networks)
 	@echo "$(GREEN)Cleaning up everything...$(NC)"
@@ -61,7 +63,7 @@ docker-destroy: ## Destroy all development resources (containers, volumes, netwo
 
 docker-push: docker-build ## Push Docker images to Docker Hub
 	@echo "$(GREEN)Pushing Docker images to Docker Hub...$(NC)"
-	docker-compose push --parallel
+	docker-compose push
 	@echo "$(GREEN)Docker images pushed to Docker Hub!$(NC)"
 
 ##@ Terraform Commands
@@ -82,12 +84,12 @@ terraform-plan: ## Plan Terraform
 
 terraform-apply: ## Apply Terraform
 	@echo "$(GREEN)Applying Terraform...$(NC)"
-	terraform -chdir=terraform apply
+	terraform -chdir=terraform apply -auto-approve
 	@echo "$(GREEN)Terraform applied!$(NC)"
 
 terraform-destroy: ## Destroy Terraform
 	@echo "$(GREEN)Destroying Terraform...$(NC)"
-	terraform -chdir=terraform destroy
+	terraform -chdir=terraform destroy -auto-approve
 	@echo "$(GREEN)Terraform destroyed!$(NC)"
 
 ##@ Testing

@@ -4,8 +4,8 @@ Home page - Welcome and overview for ScottLMS
 
 import streamlit as st
 
-from frontend.components.utils import get_api_status, make_api_request
-from frontend.config import PAGE_CONFIG, CUSTOM_CSS
+from components.utils import get_api_status, make_api_request
+from config import PAGE_CONFIG, CUSTOM_CSS
 
 # Configure the page
 st.set_page_config(**PAGE_CONFIG)

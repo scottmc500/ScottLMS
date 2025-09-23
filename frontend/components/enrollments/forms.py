@@ -4,7 +4,7 @@ Enrollment form components
 
 import streamlit as st
 
-from frontend.components.utils import make_api_request
+from components.utils import make_api_request
 
 
 def create_enrollment_form():

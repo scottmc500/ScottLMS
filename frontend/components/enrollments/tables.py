@@ -4,7 +4,7 @@ Enrollment table and display components
 
 import streamlit as st
 
-from frontend.components.utils import make_api_request
+from components.utils import make_api_request
 from .forms import edit_enrollment_form, delete_enrollment_form
 
 

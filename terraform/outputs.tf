@@ -44,7 +44,7 @@ output "application_namespace" {
 
 output "application_service" {
   description = "Kubernetes service name for the application"
-  value       = kubernetes_service.scottlms_api.metadata[0].name
+  value       = kubernetes_service.scottlms_api_loadbalancer[0].metadata[0].name
 }
 
 output "frontend_loadbalancer_ip" {

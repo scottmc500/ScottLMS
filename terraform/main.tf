@@ -59,6 +59,9 @@ resource "random_string" "mongodb_username" {
 
 # Local values for computed resources that are used in multiple places
 locals {
+  # Extract hostname from the connection string (remove mongodb+srv:// prefix)
+  mongodb_hostname = replace(mongodbatlas_cluster.main.connection_strings[0].standard_srv, "mongodb+srv://", "")
+  
   # Complete MongoDB connection URL
-  mongodb_url = "mongodb+srv://${random_string.mongodb_username.result}:${random_password.mongodb_user_password.result}@${mongodbatlas_cluster.main.connection_strings[0].standard_srv}"
+  mongodb_url = "mongodb+srv://${random_string.mongodb_username.result}:${random_password.mongodb_user_password.result}@${local.mongodb_hostname}/scottlms"
 }

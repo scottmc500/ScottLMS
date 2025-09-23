@@ -17,7 +17,6 @@ services:
         condition: service_healthy
     volumes:
       - ./backend:/app
-      - ../scripts:/app/scripts
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 10s
@@ -86,7 +85,7 @@ services:
       api:
         condition: service_healthy
     volumes:
-      - ./frontend:/app/frontend
+      - ./frontend:/app
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8501')"]
       interval: 10s

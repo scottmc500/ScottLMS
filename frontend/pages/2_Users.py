@@ -4,9 +4,9 @@ User Management Page
 
 import streamlit as st
 
-from frontend.components.users import create_user_form, display_users
-from frontend.components.utils import get_api_status
-from frontend.config import CUSTOM_CSS, PAGE_CONFIG
+from components.users import create_user_form, display_users
+from components.utils import get_api_status
+from config import CUSTOM_CSS, PAGE_CONFIG
 
 # Configure the page
 st.set_page_config(**PAGE_CONFIG)

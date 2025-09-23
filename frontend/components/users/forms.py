@@ -4,8 +4,8 @@ User form components
 
 import streamlit as st
 
-from frontend.components.utils import make_api_request
-from frontend.components.shared.password_validation import (
+from components.utils import make_api_request
+from components.shared.password_validation import (
     validate_password,
     display_inline_password_requirements,
 )
