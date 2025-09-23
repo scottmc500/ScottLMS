@@ -25,32 +25,6 @@ variable "atlas_project_id" {
   default     = ""
 }
 
-# === OPTIONAL OVERRIDES (Can be set in CI/CD) ===
-
-variable "app_image_tag" {
-  description = "Docker image tag for the application"
-  type        = string
-  default     = "latest"
-}
-
-variable "atlas_cluster_tier" {
-  description = "MongoDB Atlas cluster tier (M0=Free, M2, M5, M10, etc.)"
-  type        = string
-  default     = "M0"
-}
-
-variable "app_replicas" {
-  description = "Number of application replicas"
-  type        = number
-  default     = 2
-}
-
-variable "domain_name" {
-  description = "Domain name for the application (optional - leave empty for LoadBalancer)"
-  type        = string
-  default     = ""
-}
-
 # === DOCKER HUB CREDENTIALS (Required for private images) ===
 
 variable "docker_hub_username" {
@@ -63,4 +37,17 @@ variable "docker_hub_password" {
   description = "Docker Hub password or access token for pulling images"
   type        = string
   sensitive   = true
+}
+
+# === LINODE IMPORT CONFIGURATION ===
+
+variable "linode_token" {
+  description = "Linode API token for importing existing infrastructure"
+  type        = string
+  sensitive   = true
+}
+
+variable "linode_cluster_id" {
+  description = "ID of the existing Linode LKE cluster to import"
+  type        = number
 }
