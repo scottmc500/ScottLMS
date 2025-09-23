@@ -2,10 +2,10 @@
 # Outputs for Kubernetes cluster and MongoDB Atlas resources
 
 # Kubernetes Cluster Outputs
-# output "kubernetes_namespace" {
-#   description = "Kubernetes namespace where the application is deployed"
-#   value       = kubernetes_namespace.scottlms.metadata[0].name
-# }
+output "kubernetes_namespace" {
+  description = "Kubernetes namespace where the application is deployed"
+  value       = kubernetes_namespace.scottlms.metadata[0].name
+}
 
 # MongoDB Atlas Outputs
 output "mongodb_cluster_id" {
@@ -21,7 +21,7 @@ output "mongodb_cluster_connection_string_srv" {
 
 output "mongodb_database_name" {
   description = "Name of the MongoDB database"
-  value       = local.mongodb_config.database_name
+  value       = "scottlms"
 }
 
 output "mongodb_username" {
@@ -30,65 +30,96 @@ output "mongodb_username" {
   sensitive   = true
 }
 
+output "mongodb_complete_url" {
+  description = "Complete MongoDB connection URL with credentials"
+  value       = local.mongodb_url
+  sensitive   = true
+}
+
 # Application Outputs
-# output "application_namespace" {
-#   description = "Kubernetes namespace where the application is deployed"
-#   value       = kubernetes_namespace.scottlms.metadata[0].name
-# }
+output "application_namespace" {
+  description = "Kubernetes namespace where the application is deployed"
+  value       = kubernetes_namespace.scottlms.metadata[0].name
+}
+
+output "application_service" {
+  description = "Kubernetes service name for the application"
+  value       = kubernetes_service.scottlms_api.metadata[0].name
+}
+
+output "frontend_loadbalancer_ip" {
+  description = "External IP address of the frontend LoadBalancer service"
+  value       = var.domain_name == "" ? kubernetes_service.scottlms_frontend_loadbalancer[0].status[0].load_balancer[0].ingress[0].ip : null
+}
+
+output "api_loadbalancer_ip" {
+  description = "External IP address of the API LoadBalancer service"
+  value       = var.domain_name == "" ? kubernetes_service.scottlms_api_loadbalancer[0].status[0].load_balancer[0].ingress[0].ip : null
+}
 
 # Security Outputs
 output "rbac_enabled" {
   description = "Whether RBAC is enabled on the cluster"
-  value       = local.security_config.enable_rbac
+  value       = true
 }
 
 output "network_policies_enabled" {
   description = "Whether network policies are enabled"
-  value       = local.security_config.enable_network_policies
+  value       = true
 }
 
 # Backup Outputs
 output "backup_enabled" {
   description = "Whether automated backups are enabled"
-  value       = local.security_config.enable_backups
+  value       = true
 }
 
 output "backup_retention_days" {
   description = "Number of days backups are retained"
-  value       = local.security_config.backup_retention_days
+  value       = 7
 }
 
 # Environment Information
 output "environment" {
   description = "Environment name"
-  value       = local.environment
+  value       = "production"
 }
 
 output "project_name" {
   description = "Project name"
-  value       = local.project_name
+  value       = "scottlms"
 }
 
 output "region" {
   description = "Primary region"
-  value       = local.region
+  value       = "us-east"
 }
 
 # Quick Access Commands
-# output "view_pods_command" {
-#   description = "Command to view application pods"
-#   value       = "kubectl get pods -n ${kubernetes_namespace.scottlms.metadata[0].name}"
-# }
-# 
-# output "view_logs_command" {
-#   description = "Command to view application logs"
-#   value       = "kubectl logs -l app=scottlms-api -n ${kubernetes_namespace.scottlms.metadata[0].name}"
-# }
-# 
-# output "view_config_command" {
-#   description = "Command to view application configuration"
-#   value       = "kubectl get configmap ${local.project_name}-config -n ${kubernetes_namespace.scottlms.metadata[0].name} -o yaml"
-# }
+output "view_pods_command" {
+  description = "Command to view application pods"
+  value       = "kubectl get pods -n ${kubernetes_namespace.scottlms.metadata[0].name}"
+}
+
+output "view_logs_command" {
+  description = "Command to view application logs"
+  value       = "kubectl logs -l app=scottlms-api -n ${kubernetes_namespace.scottlms.metadata[0].name}"
+}
+
+output "view_config_command" {
+  description = "Command to view application configuration"
+  value       = "kubectl get configmap scottlms-config -n ${kubernetes_namespace.scottlms.metadata[0].name} -o yaml"
+}
+
+output "view_frontend_pods_command" {
+  description = "Command to view frontend pods"
+  value       = "kubectl get pods -l app=scottlms-frontend -n ${kubernetes_namespace.scottlms.metadata[0].name}"
+}
+
+output "view_frontend_logs_command" {
+  description = "Command to view frontend logs"
+  value       = "kubectl logs -l app=scottlms-frontend -n ${kubernetes_namespace.scottlms.metadata[0].name}"
+}
 
 # Resource Summary
 output "infrastructure_summary" {
@@ -97,7 +128,7 @@ output "infrastructure_summary" {
     mongodb_cluster = {
       id     = mongodbatlas_cluster.main.id
       tier   = var.atlas_cluster_tier
-      region = local.mongodb_config.provider_region_name
+      region = "US_EAST_1"
       name   = mongodbatlas_cluster.main.name
     }
     application = {

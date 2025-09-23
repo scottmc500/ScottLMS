@@ -5,10 +5,9 @@
 terraform {
   backend "remote" {
     hostname = "app.terraform.io"
-    organization = "scottmc500"  # Replace with your Terraform Cloud organization name
-    
+    organization = "scottmc500"
     workspaces {
-      name = "scottlms-production"  # Replace with your desired workspace name
+      name = "scottlms-production"
     }
   }
   
@@ -35,9 +34,8 @@ terraform {
 
 # Configure Kubernetes Provider
 provider "kubernetes" {
-  # For Terraform Cloud, we'll use environment variables or host configuration
-  # The kubeconfig will be provided via environment variables in Terraform Cloud
-  # or configured directly in the workspace settings
+  # Disable TLS verification for Terraform Cloud (Linode clusters use self-signed certs)
+  insecure = true
 }
 
 # Configure MongoDB Atlas Provider
@@ -46,53 +44,21 @@ provider "mongodbatlas" {
   private_key = var.atlas_private_key
 }
 
-# Local values for computed resources
+# Generate random password for MongoDB Atlas user
+resource "random_password" "mongodb_user_password" {
+  length  = 16
+  special = true
+}
+
+# Generate random database username
+resource "random_string" "mongodb_username" {
+  length  = 8
+  special = false
+  upper   = false
+}
+
+# Local values for computed resources that are used in multiple places
 locals {
-  # Project configuration
-  project_name = "scottlms"
-  environment  = "production"
-  region       = "us-east"
-  
-  # Common tags for all resources
-  common_tags = {
-    Project     = local.project_name
-    Environment = local.environment
-    ManagedBy   = "terraform"
-    CreatedBy   = "scottlms"
-  }
-  
-  # Naming convention
-  name_prefix = "${local.project_name}-${local.environment}"
-  
-  # MongoDB Atlas configuration with defaults
-  mongodb_config = {
-    cluster_name           = "${local.project_name}-cluster"
-    provider_name          = "AWS"
-    provider_region_name   = "US_WEST_2"
-    database_name          = local.project_name
-  }
-  
-  # Kubernetes configuration with defaults
-  k8s_config = {
-    namespace = local.project_name
-  }
-  
-  # Application configuration with defaults
-  app_config = {
-    cpu_request    = "100m"
-    memory_request = "256Mi"
-    cpu_limit      = "500m"
-    memory_limit   = "512Mi"
-    log_level      = "info"
-  }
-  
-  # Security and monitoring defaults
-  security_config = {
-    enable_rbac             = true
-    enable_network_policies = true
-    enable_monitoring       = true
-    enable_backups          = true
-    backup_retention_days   = 7
-    ssl_enabled            = true
-  }
+  # Complete MongoDB connection URL
+  mongodb_url = "mongodb+srv://${random_string.mongodb_username.result}:${random_password.mongodb_user_password.result}@${mongodbatlas_cluster.main.connection_strings[0].standard_srv}"
 }

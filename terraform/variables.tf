@@ -50,3 +50,17 @@ variable "domain_name" {
   type        = string
   default     = ""
 }
+
+# === DOCKER HUB CREDENTIALS (Required for private images) ===
+
+variable "docker_hub_username" {
+  description = "Docker Hub username for pulling images"
+  type        = string
+  sensitive   = true
+}
+
+variable "docker_hub_password" {
+  description = "Docker Hub password or access token for pulling images"
+  type        = string
+  sensitive   = true
+}

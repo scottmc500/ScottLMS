@@ -24,32 +24,13 @@ help: ## Display this help message
 	@echo ""
 	@awk 'BEGIN {FS = ":.*##"; printf "Usage:\n  make $(BLUE)<target>$(NC)\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  $(BLUE)%-20s$(NC) %s\n", $$1, $$2 } /^##@/ { printf "\n$(YELLOW)%s$(NC)\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
-##@ Development Setup
-install: ## Install Python dependencies
-	@echo "$(GREEN)Installing dependencies...$(NC)"
-	$(PYTHON) -m venv venv
-	. venv/bin/activate && pip install --upgrade pip
-	. venv/bin/activate && pip install -r backend/requirements.txt
-	. venv/bin/activate && pip install -r frontend/requirements.txt
-	@echo "$(GREEN)Dependencies installed!$(NC)"
-
-setup: ## Complete development setup
-	@echo "$(GREEN)Setting up development environment...$(NC)"
-	@if [ ! -f .env ]; then \
-		if [ -f env.example ]; then \
-			cp env.example .env; \
-			echo "$(YELLOW)Created .env file from env.example$(NC)"; \
-		fi; \
-	fi
-	@echo "$(GREEN)Setup complete!$(NC)"
-
 ##@ Development
-build: ## Build development environment with Docker
+docker-build: ## Build development environment with Docker
 	@echo "$(GREEN)Building development environment...$(NC)"
 	docker-compose build --parallel --no-cache
 	@echo "$(GREEN)Development environment built!$(NC)"
 
-start: ## Start development environment with Docker
+docker-start: ## Start development environment with Docker
 	@echo "$(GREEN)Starting development environment...$(NC)"
 	docker-compose up -d
 	@echo "$(GREEN)Development environment started!$(NC)"
@@ -59,16 +40,16 @@ start: ## Start development environment with Docker
 	@echo "  • API Docs: http://localhost:8000/docs"
 	@echo "  • MongoDB Express: http://localhost:8081 (admin/admin)"
 
-logs: ## View development logs
+docker-logs: ## View development logs
 	docker-compose logs -f
 
-stop: ## Stop development environment
+docker-stop: ## Stop development environment
 	@echo "$(GREEN)Stopping development environment...$(NC)"
 	docker-compose down
 
-restart: stop build start ## Restart development environment
+docker-restart: docker-stop docker-build docker-start ## Restart development environment
 
-destroy: ## Destroy all development resources (containers, volumes, networks)
+docker-destroy: ## Destroy all development resources (containers, volumes, networks)
 	@echo "$(GREEN)Cleaning up everything...$(NC)"
 	docker-compose down -v --remove-orphans
 	docker rmi -f $(shell docker images -q)
@@ -78,33 +59,33 @@ destroy: ## Destroy all development resources (containers, volumes, networks)
 	rm -rf .pytest_cache/ htmlcov/ .coverage
 	@echo "$(GREEN)All development resources destroyed!$(NC)"
 
-push: build ## Push Docker images to Docker Hub
+docker-push: docker-build ## Push Docker images to Docker Hub
 	@echo "$(GREEN)Pushing Docker images to Docker Hub...$(NC)"
 	docker-compose push --parallel
 	@echo "$(GREEN)Docker images pushed to Docker Hub!$(NC)"
 
 ##@ Terraform Commands
-infra-init: ## Initialize Terraform
+terraform-init: ## Initialize Terraform
 	@echo "$(GREEN)Initializing Terraform...$(NC)"
 	terraform -chdir=terraform init
 	@echo "$(GREEN)Terraform initialized!$(NC)"
 
-infra-validate: ## Validate Terraform
+terraform-validate: ## Validate Terraform
 	@echo "$(GREEN)Validating Terraform...$(NC)"
 	terraform -chdir=terraform validate
 	@echo "$(GREEN)Terraform validated!$(NC)"
 
-infra-plan: ## Plan Terraform
+terraform-plan: ## Plan Terraform
 	@echo "$(GREEN)Planning Terraform...$(NC)"
 	terraform -chdir=terraform plan
 	@echo "$(GREEN)Terraform planned!$(NC)"
 
-infra-apply: ## Apply Terraform
+terraform-apply: ## Apply Terraform
 	@echo "$(GREEN)Applying Terraform...$(NC)"
 	terraform -chdir=terraform apply
 	@echo "$(GREEN)Terraform applied!$(NC)"
 
-infra-destroy: ## Destroy Terraform
+terraform-destroy: ## Destroy Terraform
 	@echo "$(GREEN)Destroying Terraform...$(NC)"
 	terraform -chdir=terraform destroy
 	@echo "$(GREEN)Terraform destroyed!$(NC)"
@@ -161,7 +142,7 @@ db-reset: ## Reset database (WARNING: deletes all data)
 	@echo "$(GREEN)Database reset!$(NC)"
 
 test-all: test test-coverage ## Run all tests with coverage
-build-all: build test quality ## Build, test, and quality check
+build-all: docker-build test quality ## Build, test, and quality check
 
 ##@ Information
 status: ## Show development environment status

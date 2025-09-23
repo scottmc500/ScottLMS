@@ -1,42 +1,27 @@
 # ScottLMS MongoDB Atlas Resources
 # MongoDB Atlas cluster and database configuration
 
-# MongoDB Atlas Project (if not provided)
-resource "mongodbatlas_project" "scottlms" {
-  count = var.atlas_project_id == "" ? 1 : 0
-  
-  name   = "${local.name_prefix}-project"
-  org_id = var.atlas_org_id
-}
-
-# MongoDB Atlas Cluster
 resource "mongodbatlas_cluster" "main" {
-  project_id   = var.atlas_project_id != "" ? var.atlas_project_id : mongodbatlas_project.scottlms[0].id
-  name         = local.mongodb_config.cluster_name
-  
-  # Cluster configuration
-  cluster_type = "REPLICASET"
-  cloud_backup = true
+  project_id   = var.atlas_project_id
+  name         = "scottlms-cluster"
   
   # Provider settings - Free tier configuration
-  provider_name         = local.mongodb_config.provider_name
-  provider_instance_size_name = var.atlas_cluster_tier
-  provider_region_name  = local.mongodb_config.provider_region_name
-  
-  # Auto-scaling (disabled for free tier)
-  auto_scaling_disk_gb_enabled = var.atlas_cluster_tier != "M0"
+  provider_name         = "TENANT"
+  backing_provider_name = "AWS"
+  provider_instance_size_name = "M0"
+  provider_region_name  = "US_EAST_1"
 }
 
 # MongoDB Atlas Database User
 resource "mongodbatlas_database_user" "scottlms_user" {
   username           = random_string.mongodb_username.result
   password           = random_password.mongodb_user_password.result
-  project_id         = var.atlas_project_id != "" ? var.atlas_project_id : mongodbatlas_project.scottlms[0].id
+  project_id         = var.atlas_project_id
   auth_database_name = "admin"
   
   roles {
     role_name     = "readWrite"
-    database_name = local.mongodb_config.database_name
+    database_name = "scottlms"
   }
   
   scopes {
@@ -47,7 +32,7 @@ resource "mongodbatlas_database_user" "scottlms_user" {
 
 # IP Access List for MongoDB Atlas
 resource "mongodbatlas_project_ip_access_list" "allow_all" {
-  project_id = var.atlas_project_id != "" ? var.atlas_project_id : mongodbatlas_project.scottlms[0].id
+  project_id = var.atlas_project_id
   cidr_block = "0.0.0.0/0"
   comment    = "Allow access from anywhere (restrict this in production)"
 }
