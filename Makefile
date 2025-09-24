@@ -28,12 +28,12 @@ help: ## Display this help message
 ##@ Development
 docker-build: ## Build development environment with Docker
 	@echo "$(GREEN)Building development environment...$(NC)"
-	docker-compose build --parallel --no-cache
+	docker compose build --parallel --no-cache
 	@echo "$(GREEN)Development environment built!$(NC)"
 
 docker-start: ## Start development environment with Docker
 	@echo "$(GREEN)Starting development environment...$(NC)"
-	docker-compose up -d
+	docker compose up -d
 	@echo "$(GREEN)Development environment started!$(NC)"
 	@echo "$(BLUE)Access URLs:$(NC)"
 	@echo "  • Frontend: http://localhost"
@@ -42,11 +42,11 @@ docker-start: ## Start development environment with Docker
 	@echo "  • MongoDB Express: http://localhost:8081 (admin/admin)"
 
 docker-logs: ## View development logs
-	docker-compose logs -f
+	docker compose logs -f
 
 docker-stop: ## Stop development environment
 	@echo "$(GREEN)Stopping development environment...$(NC)"
-	docker-compose down
+	docker compose down
 
 docker-restart: docker-stop docker-build docker-start ## Restart development environment
 
@@ -54,7 +54,7 @@ docker-rebuild: docker-destroy docker-build docker-start ## Rebuild development 
 
 docker-destroy: ## Destroy all development resources (containers, volumes, networks)
 	@echo "$(GREEN)Cleaning up everything...$(NC)"
-	docker-compose down -v --remove-orphans
+	docker compose down -v --remove-orphans
 	docker rmi -f $(shell docker images -q)
 	docker system prune -af
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
@@ -64,7 +64,7 @@ docker-destroy: ## Destroy all development resources (containers, volumes, netwo
 
 docker-push: docker-build ## Push Docker images to Docker Hub
 	@echo "$(GREEN)Pushing Docker images to Docker Hub...$(NC)"
-	docker-compose push
+	docker compose push
 	@echo "$(GREEN)Docker images pushed to Docker Hub!$(NC)"
 
 docker-test-backend: ## Test backend with Docker
@@ -172,17 +172,17 @@ quality: format lint ## Run all code quality checks
 ##@ Building & Deployment
 build: ## Build Docker images
 	@echo "$(GREEN)Building Docker images...$(NC)"
-	docker-compose build --parallel --no-cache
+	docker compose build --parallel --no-cache
 	@echo "$(GREEN)Build complete!$(NC)"
 
 ##@ Database
 db-shell: ## Connect to MongoDB shell
-	docker-compose exec mongodb mongosh scottlms
+	docker compose exec mongodb mongosh scottlms
 
 db-reset: ## Reset database (WARNING: deletes all data)
 	@echo "$(RED)WARNING: This will delete all data!$(NC)"
 	@read -p "Are you sure? (y/N): " confirm && [ "$$confirm" = "y" ]
-	docker-compose exec mongodb mongosh scottlms --eval "db.dropDatabase()"
+	docker compose exec mongodb mongosh scottlms --eval "db.dropDatabase()"
 	@echo "$(GREEN)Database reset!$(NC)"
 
 test-all: test test-coverage ## Run all tests with coverage
@@ -193,7 +193,7 @@ status: ## Show development environment status
 	@echo "$(BLUE)=== Development Environment Status ===$(NC)"
 	@echo ""
 	@echo "$(YELLOW)Container Status:$(NC)"
-	@docker-compose ps
+	@docker compose ps
 	@echo ""
 	@echo "$(YELLOW)Service URLs:$(NC)"
 	@echo "  • Frontend: http://localhost:8501"
