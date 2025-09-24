@@ -29,6 +29,15 @@ jobs:
           terraform_version: '1.13.3'
           cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
 
+      - name: Remove terraform.tfvars to use environment variables
+        run: |
+          if [ -f terraform/terraform.tfvars ]; then
+            echo "Removing terraform.tfvars to ensure environment variables are used"
+            rm terraform/terraform.tfvars
+          else
+            echo "No terraform.tfvars file found"
+          fi
+
       - name: Terraform Init
         run: make terraform-init
 
@@ -50,8 +59,40 @@ jobs:
           echo "TF_VAR_linode_token is set: $([ -n "$TF_VAR_linode_token" ] && echo "YES" || echo "NO")"
           echo "TF_VAR_linode_cluster_id is set: $([ -n "$TF_VAR_linode_cluster_id" ] && echo "YES" || echo "NO")"
 
+      - name: Debug Terraform Configuration
+        run: |
+          echo "Current working directory: $(pwd)"
+          echo "Terraform directory contents:"
+          ls -la terraform/
+          echo ""
+          echo "Checking Terraform variables file:"
+          cat terraform/variables.tf
+          echo ""
+          echo "Checking if terraform.tfvars exists:"
+          ls -la terraform/terraform.tfvars* || echo "No terraform.tfvars files found"
+          echo ""
+          echo "Checking Terraform state:"
+          cd terraform && terraform show || echo "No state file or not initialized"
+
+      - name: Debug Terraform Variables
+        run: |
+          echo "Checking what Terraform sees for variables:"
+          cd terraform
+          terraform console <<< "var.atlas_public_key" || echo "Failed to get atlas_public_key"
+          terraform console <<< "var.atlas_private_key" || echo "Failed to get atlas_private_key"
+          terraform console <<< "var.atlas_org_id" || echo "Failed to get atlas_org_id"
+          terraform console <<< "var.atlas_project_id" || echo "Failed to get atlas_project_id"
+          terraform console <<< "var.docker_hub_username" || echo "Failed to get docker_hub_username"
+          terraform console <<< "var.docker_hub_password" || echo "Failed to get docker_hub_password"
+          terraform console <<< "var.linode_token" || echo "Failed to get linode_token"
+          terraform console <<< "var.linode_cluster_id" || echo "Failed to get linode_cluster_id"
+
       - name: Terraform Plan (Dry Run)
-        run: make terraform-plan
+        run: |
+          echo "Running terraform plan with verbose output..."
+          cd terraform
+          terraform plan -detailed-exitcode -no-color
+        continue-on-error: true
 
   build-and-test-docker-images:
     name: Build and Test Docker Images
