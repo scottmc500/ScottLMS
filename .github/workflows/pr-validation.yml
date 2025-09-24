@@ -32,14 +32,14 @@ jobs:
       - name: Terraform Plan (Dry Run)
         run: make terraform-plan
         env:
-          TF_VAR_atlas_public_key: ${{ secrets.MONGODB_ATLAS_PUBLIC_KEY }}
-          TF_VAR_atlas_private_key: ${{ secrets.MONGODB_ATLAS_PRIVATE_KEY }}
-          TF_VAR_atlas_org_id: ${{ secrets.MONGODB_ATLAS_ORG_ID }}
-          TF_VAR_atlas_project_id: ${{ secrets.MONGODB_ATLAS_PROJECT_ID }}
-          TF_VAR_docker_hub_username: ${{ secrets.DOCKER_HUB_USERNAME }}
-          TF_VAR_docker_hub_password: ${{ secrets.DOCKER_HUB_PASSWORD }}
-          TF_VAR_linode_token: ${{ secrets.LINODE_TOKEN }}
-          TF_VAR_linode_cluster_id: ${{ secrets.LINODE_CLUSTER_ID }}
+          TF_VAR_atlas_public_key: '${{ secrets.MONGODB_ATLAS_PUBLIC_KEY }}'
+          TF_VAR_atlas_private_key: '${{ secrets.MONGODB_ATLAS_PRIVATE_KEY }}'
+          TF_VAR_atlas_org_id: '${{ secrets.MONGODB_ATLAS_ORG_ID }}'
+          TF_VAR_atlas_project_id: '${{ secrets.MONGODB_ATLAS_PROJECT_ID }}'
+          TF_VAR_docker_hub_username: '${{ secrets.DOCKER_HUB_USERNAME }}'
+          TF_VAR_docker_hub_password: '${{ secrets.DOCKER_HUB_PASSWORD }}'
+          TF_VAR_linode_token: '${{ secrets.LINODE_TOKEN }}'
+          TF_VAR_linode_cluster_id: '${{ secrets.LINODE_CLUSTER_ID }}'
 
   build-and-test-docker-images:
     name: Build and Test Docker Images
