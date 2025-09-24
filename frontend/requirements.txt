@@ -1,8 +1,23 @@
-# Frontend Dependencies for ScottLMS
-# Streamlit and related packages
-streamlit>=1.29.0
-requests==2.31.0
+# ScottLMS Frontend Dependencies
+# ==============================
 
-# Optional: Additional frontend packages
-# plotly==5.17.0  # For charts and graphs
-# pandas==2.1.3   # For data manipulation (if needed)
+# Core Streamlit Framework
+streamlit==1.50.0
+
+# HTTP Client for API Communication
+requests==2.32.5
+
+# Testing Framework
+pytest==7.4.0
+pytest-cov==4.1.0
+pytest-asyncio==0.21.0
+
+# Optional: Data Visualization & Analysis
+# plotly==5.17.0          # Interactive charts and graphs
+# pandas==2.1.3           # Data manipulation and analysis
+# numpy==1.24.3           # Numerical computing (if needed)
+
+# Optional: Additional UI Components
+# streamlit-option-menu==0.3.6  # Enhanced navigation menus
+# streamlit-aggrid==0.3.4       # Advanced data tables
+# streamlit-authenticator==0.2.3 # Authentication components

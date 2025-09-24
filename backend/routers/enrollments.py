@@ -50,7 +50,7 @@ async def create_enrollment(enrollment_data: EnrollmentCreate):
                 detail="User is already enrolled in this course",
             )
 
-        enrollment = Enrollment(**enrollment_data.dict())
+        enrollment = Enrollment(**enrollment_data.model_dump())
         await enrollment.save()
 
         # Update course enrollment count
@@ -60,7 +60,7 @@ async def create_enrollment(enrollment_data: EnrollmentCreate):
         logger.info(
             f"Created enrollment: User {enrollment.user_id} in Course {enrollment.course_id}"
         )
-        enrollment_dict = enrollment.dict()
+        enrollment_dict = enrollment.model_dump()
         # Handle both _id and id cases
         if "_id" in enrollment_dict:
             enrollment_dict["id"] = enrollment_dict.pop("_id")
@@ -86,7 +86,7 @@ async def get_enrollments():
         enrollments = await Enrollment.find_all().to_list()
         result = []
         for enrollment in enrollments:
-            enrollment_dict = enrollment.dict()
+            enrollment_dict = enrollment.model_dump()
             # Handle both _id and id cases
             if "_id" in enrollment_dict:
                 enrollment_dict["id"] = enrollment_dict.pop("_id")
@@ -112,7 +112,7 @@ async def get_enrollment(enrollment_id: PydanticObjectId):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Enrollment not found"
             )
-        enrollment_dict = enrollment.dict()
+        enrollment_dict = enrollment.model_dump()
         # Handle both _id and id cases
         if "_id" in enrollment_dict:
             enrollment_dict["id"] = enrollment_dict.pop("_id")
@@ -143,7 +143,7 @@ async def update_enrollment(
             )
 
         # Update only provided fields
-        update_data = enrollment_data.dict(exclude_unset=True)
+        update_data = enrollment_data.model_dump(exclude_unset=True)
 
         for field, value in update_data.items():
             setattr(enrollment, field, value)
@@ -151,7 +151,7 @@ async def update_enrollment(
         await enrollment.save()
 
         logger.info(f"Updated enrollment: {enrollment_id}")
-        enrollment_dict = enrollment.dict()
+        enrollment_dict = enrollment.model_dump()
         # Handle both _id and id cases
         if "_id" in enrollment_dict:
             enrollment_dict["id"] = enrollment_dict.pop("_id")
@@ -206,7 +206,7 @@ async def get_user_enrollments(user_id: PydanticObjectId):
         enrollments = await Enrollment.find(Enrollment.user_id == user_id).to_list()
         result = []
         for enrollment in enrollments:
-            enrollment_dict = enrollment.dict()
+            enrollment_dict = enrollment.model_dump()
             # Handle both _id and id cases
             if "_id" in enrollment_dict:
                 enrollment_dict["id"] = enrollment_dict.pop("_id")
@@ -230,7 +230,7 @@ async def get_course_enrollments(course_id: PydanticObjectId):
         enrollments = await Enrollment.find(Enrollment.course_id == course_id).to_list()
         result = []
         for enrollment in enrollments:
-            enrollment_dict = enrollment.dict()
+            enrollment_dict = enrollment.model_dump()
             # Handle both _id and id cases
             if "_id" in enrollment_dict:
                 enrollment_dict["id"] = enrollment_dict.pop("_id")

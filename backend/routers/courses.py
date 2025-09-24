@@ -25,11 +25,11 @@ async def create_course(course_data: CourseCreate):
                 status_code=status.HTTP_400_BAD_REQUEST, detail="Instructor not found"
             )
 
-        course = Course(**course_data.dict())
+        course = Course(**course_data.model_dump())
         await course.save()
 
         logger.info(f"Created course: {course.title}")
-        course_dict = course.dict()
+        course_dict = course.model_dump()
         # Handle both _id and id cases
         if "_id" in course_dict:
             course_dict["id"] = course_dict.pop("_id")
@@ -55,7 +55,7 @@ async def get_courses():
         courses = await Course.find_all().to_list()
         result = []
         for course in courses:
-            course_dict = course.dict()
+            course_dict = course.model_dump()
             # Handle both _id and id cases
             if "_id" in course_dict:
                 course_dict["id"] = course_dict.pop("_id")
@@ -81,7 +81,7 @@ async def get_course(course_id: PydanticObjectId):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Course not found"
             )
-        course_dict = course.dict()
+        course_dict = course.model_dump()
         # Handle both _id and id cases
         if "_id" in course_dict:
             course_dict["id"] = course_dict.pop("_id")
@@ -110,13 +110,13 @@ async def update_course(course_id: PydanticObjectId, course_data: CourseUpdate):
             )
 
         # Update fields
-        update_data = course_data.dict(exclude_unset=True)
+        update_data = course_data.model_dump(exclude_unset=True)
         for field, value in update_data.items():
             setattr(course, field, value)
 
         await course.save()
         logger.info(f"Updated course: {course.title}")
-        course_dict = course.dict()
+        course_dict = course.model_dump()
         # Handle both _id and id cases
         if "_id" in course_dict:
             course_dict["id"] = course_dict.pop("_id")
@@ -165,7 +165,7 @@ async def get_courses_by_instructor(instructor_id: PydanticObjectId):
         courses = await Course.find(Course.instructor_id == instructor_id).to_list()
         result = []
         for course in courses:
-            course_dict = course.dict()
+            course_dict = course.model_dump()
             # Handle both _id and id cases
             if "_id" in course_dict:
                 course_dict["id"] = course_dict.pop("_id")

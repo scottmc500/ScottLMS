@@ -10,6 +10,7 @@
 PROJECT_NAME := scottlms
 PYTHON := python3
 PIP := pip3
+TAG ?= latest
 
 # Colors for output
 RED := \033[0;31m
@@ -66,6 +67,18 @@ docker-push: docker-build ## Push Docker images to Docker Hub
 	docker-compose push
 	@echo "$(GREEN)Docker images pushed to Docker Hub!$(NC)"
 
+docker-test-backend: ## Test backend with Docker
+	@echo "$(GREEN)Testing backend with Docker (tag: $(TAG))...$(NC)"
+	docker run --platform linux/amd64 --rm smchenry2014/scottlms-api:$(TAG) python -m pytest
+	@echo "$(GREEN)Backend tests completed!$(NC)"
+
+docker-test-frontend: ## Test frontend with Docker
+	@echo "$(GREEN)Testing frontend with Docker (tag: $(TAG))...$(NC)"
+	docker run --platform linux/amd64 --rm smchenry2014/scottlms-ui:$(TAG) python -m pytest
+	@echo "$(GREEN)Frontend tests completed!$(NC)"
+
+docker-test-all: docker-test-backend docker-test-frontend ## Test all with Docker
+
 ##@ Terraform Commands
 terraform-init: ## Initialize Terraform
 	@echo "$(GREEN)Initializing Terraform...$(NC)"
@@ -76,6 +89,16 @@ terraform-validate: ## Validate Terraform
 	@echo "$(GREEN)Validating Terraform...$(NC)"
 	terraform -chdir=terraform validate
 	@echo "$(GREEN)Terraform validated!$(NC)"
+
+terraform-set-fmt: ## Set Terraform format
+	@echo "$(GREEN)Setting Terraform format...$(NC)"
+	terraform -chdir=terraform fmt -recursive
+	@echo "$(GREEN)Terraform format set!$(NC)"
+
+terraform-check-fmt: ## Check Terraform format
+	@echo "$(GREEN)Checking Terraform format...$(NC)"
+	terraform -chdir=terraform fmt -check -recursive
+	@echo "$(GREEN)Terraform format checked!$(NC)"
 
 terraform-plan: ## Plan Terraform
 	@echo "$(GREEN)Planning Terraform...$(NC)"

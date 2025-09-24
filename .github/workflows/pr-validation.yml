@@ -1,0 +1,99 @@
+name: Pull Request Validation
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'terraform/**'
+      - 'docker-compose.yml'
+  workflow_dispatch: # Manual trigger option
+
+env:
+  TF_VERSION: '1.13.3'
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  validate-terraform:
+    name: Validate Terraform Configuration
+    runs-on: ubuntu-latest
+    if: contains(github.event.pull_request.changed_files, 'terraform/')
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Init
+        run: make terraform-init
+
+      - name: Terraform Format Check
+        run: make terraform-check-fmt
+
+      - name: Terraform Validate
+        run: make terraform-validate
+
+      - name: Terraform Plan (Dry Run)
+        run: make terraform-plan
+        env:
+          TF_VAR_atlas_public_key: ${{ secrets.MONGODB_ATLAS_PUBLIC_KEY }}
+          TF_VAR_atlas_private_key: ${{ secrets.MONGODB_ATLAS_PRIVATE_KEY }}
+          TF_VAR_atlas_org_id: ${{ secrets.MONGODB_ATLAS_ORG_ID }}
+          TF_VAR_atlas_project_id: ${{ secrets.MONGODB_ATLAS_PROJECT_ID }}
+          TF_VAR_docker_hub_username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          TF_VAR_docker_hub_password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+          TF_VAR_linode_token: ${{ secrets.LINODE_TOKEN }}
+          TF_VAR_linode_cluster_id: ${{ secrets.LINODE_CLUSTER_ID }}
+
+  build-and-test-docker-images:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    if: contains(github.event.pull_request.changed_files, 'backend/') || contains(github.event.pull_request.changed_files, 'frontend/')
+    outputs:
+      api-image: ${{ steps.build.outputs.api-image }}
+      ui-image: ${{ steps.build.outputs.ui-image }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker images using Makefile
+        id: build
+        run: make docker-build
+        env:
+          TAG: pr-${{ github.event.number }}
+
+      - name: Test Docker images using Makefile
+        run: make docker-test-all
+        env:
+          TAG: pr-${{ github.event.number }}
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
