@@ -31,7 +31,7 @@ docker-build: ## Build development environment with Docker
 	docker-compose build --parallel --no-cache
 	@echo "$(GREEN)Development environment built!$(NC)"
 
-docker-start: docker-build ## Start development environment with Docker
+docker-start: ## Start development environment with Docker
 	@echo "$(GREEN)Starting development environment...$(NC)"
 	docker-compose up -d
 	@echo "$(GREEN)Development environment started!$(NC)"
@@ -48,9 +48,9 @@ docker-stop: ## Stop development environment
 	@echo "$(GREEN)Stopping development environment...$(NC)"
 	docker-compose down
 
-docker-restart: docker-stop docker-start ## Restart development environment
+docker-restart: docker-stop docker-build docker-start ## Restart development environment
 
-docker-rebuild: docker-destroy docker-start ## Rebuild development environment
+docker-rebuild: docker-destroy docker-build docker-start ## Rebuild development environment
 
 docker-destroy: ## Destroy all development resources (containers, volumes, networks)
 	@echo "$(GREEN)Cleaning up everything...$(NC)"
@@ -131,6 +131,25 @@ test-frontend: ## Run frontend tests only
 test-coverage: ## Run tests with coverage
 	@echo "$(GREEN)Running tests with coverage...$(NC)"
 	python -m pytest --cov=backend --cov=frontend --cov-report=html --cov-report=term
+
+##@ Deployment Commands
+save-kubeconfig: ## Save kubeconfig to ~/.kube/config and set cluster context
+	@echo "$(GREEN)Saving kubeconfig to ~/.kube/config...$(NC)"
+	terraform -chdir=terraform output -raw linode_cluster_kubeconfig > ~/.kube/config
+	kubectl cluster-info
+	@echo "$(GREEN)Kubeconfig saved to ~/.kube/config!$(NC)"
+
+health-check: ## Check deployment health
+	@echo "$(GREEN)Checking deployment health...$(NC)"
+	kubectl wait --for=condition=available --timeout=300s deployment/scottlms-api -n scottlms
+	kubectl wait --for=condition=available --timeout=300s deployment/scottlms-frontend -n scottlms
+	@echo "$(GREEN)Deployment health checked!$(NC)"
+
+get-service-endpoints: ## Get service endpoints
+	@echo "$(GREEN)Getting service endpoints...$(NC)"
+	kubectl get service scottlms-api-loadbalancer -n scottlms -o jsonpath='{.status.loadBalancer.ingress[0].ip}' > api-ip
+	kubectl get service scottlms-frontend-loadbalancer -n scottlms -o jsonpath='{.status.loadBalancer.ingress[0].ip}' > frontend-ip
+	@echo "$(GREEN)Service endpoints obtained!$(NC)"
 
 ##@ Code Quality
 format: ## Format code with black

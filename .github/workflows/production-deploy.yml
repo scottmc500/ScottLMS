@@ -3,62 +3,30 @@ name: Production Deployment
 on:
   push:
     branches: [ main ]
-    paths:
-      - 'backend/**'
-      - 'frontend/**'
-      - 'terraform/**'
-      - 'docker-compose.yml'
-      - 'Dockerfile'
-      - 'requirements.txt'
   workflow_dispatch: # Manual trigger option
-    inputs:
-      image_tag:
-        description: 'Docker image tag to deploy (default: latest)'
-        required: false
-        default: 'latest'
-        type: string
 
 env:
   TF_VERSION: '1.13.3'
-  PYTHON_VERSION: '3.11'
   REGISTRY: 'smchenry2014'
   API_IMAGE: 'scottlms-api'
   UI_IMAGE: 'scottlms-ui'
+  TAG: ${{ github.sha }}
+  TF_VAR_atlas_public_key: ${{ secrets.MONGODB_ATLAS_PUBLIC_KEY }}
+  TF_VAR_atlas_private_key: ${{ secrets.MONGODB_ATLAS_PRIVATE_KEY }}
+  TF_VAR_atlas_org_id: ${{ secrets.MONGODB_ATLAS_ORG_ID }}
+  TF_VAR_atlas_project_id: ${{ secrets.MONGODB_ATLAS_PROJECT_ID }}
+  TF_VAR_docker_hub_username: ${{ secrets.DOCKER_HUB_USERNAME }}
+  TF_VAR_docker_hub_password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+  TF_VAR_linode_token: ${{ secrets.LINODE_TOKEN }}
+  TF_VAR_linode_cluster_id: ${{ secrets.LINODE_CLUSTER_ID }}
 
 jobs:
-  code-quality:
-    name: Code Quality Check
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install dependencies
-        run: |
-          pip install black flake8 autopep8
-          cd backend && pip install -r requirements.txt
-          cd ../frontend && pip install -r requirements.txt
-
-      - name: Run code quality checks
-        run: make quality
-
   build-and-push:
     name: Build and Push Docker Images
     runs-on: ubuntu-latest
-    needs: code-quality
-    outputs:
-      api-image: ${{ steps.meta-api.outputs.tags }}
-      ui-image: ${{ steps.meta-ui.outputs.tags }}
-      image-digest: ${{ steps.build-api.outputs.digest }}
     
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
@@ -70,37 +38,14 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
 
-      - name: Extract metadata for API
-        id: meta-api
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.API_IMAGE }}
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=sha,prefix={{branch}}-
-            type=raw,value=${{ github.event.inputs.image_tag || 'latest' }}
+      - name: Build Docker Images
+        run: make docker-build
 
-      - name: Extract metadata for UI
-        id: meta-ui
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.UI_IMAGE }}
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=sha,prefix={{branch}}-
-            type=raw,value=${{ github.event.inputs.image_tag || 'latest' }}
+      - name: Test Docker Images
+        run: make docker-test-all
 
-      - name: Build and push images using Makefile
-        run: |
-          # Build images with production tags
-          make build-ci
-          # Push to Docker Hub
-          docker push smchenry2014/scottlms-api:$(TAG)
-          docker push smchenry2014/scottlms-ui:$(TAG)
-        env:
-          TAG: ${{ github.event.inputs.image_tag || 'latest' }}
+      - name: Push Docker Images
+        run: make docker-push
 
   deploy-infrastructure:
     name: Deploy Infrastructure
@@ -121,113 +66,39 @@ jobs:
       - name: Terraform Init
         run: make terraform-init
 
-      - name: Terraform Plan
-        run: |
-          cd terraform
-          terraform plan -var="app_image_tag=${{ github.event.inputs.image_tag || 'latest' }}" -out=tfplan
-        env:
-          MONGODB_ATLAS_PUBLIC_KEY: ${{ secrets.MONGODB_ATLAS_PUBLIC_KEY }}
-          MONGODB_ATLAS_PRIVATE_KEY: ${{ secrets.MONGODB_ATLAS_PRIVATE_KEY }}
-          MONGODB_ATLAS_PROJECT_ID: ${{ secrets.MONGODB_ATLAS_PROJECT_ID }}
-          DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
-          DOCKER_HUB_PASSWORD: ${{ secrets.DOCKER_HUB_PASSWORD }}
-          LINODE_TOKEN: ${{ secrets.LINODE_TOKEN }}
-          LINODE_CLUSTER_ID: ${{ secrets.LINODE_CLUSTER_ID }}
+      - name: Terraform Validate
+        run: make terraform-validate
 
       - name: Terraform Apply
-        run: |
-          cd terraform
-          terraform apply -auto-approve tfplan
-        env:
-          MONGODB_ATLAS_PUBLIC_KEY: ${{ secrets.MONGODB_ATLAS_PUBLIC_KEY }}
-          MONGODB_ATLAS_PRIVATE_KEY: ${{ secrets.MONGODB_ATLAS_PRIVATE_KEY }}
-          MONGODB_ATLAS_PROJECT_ID: ${{ secrets.MONGODB_ATLAS_PROJECT_ID }}
-          DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
-          DOCKER_HUB_PASSWORD: ${{ secrets.DOCKER_HUB_PASSWORD }}
-          LINODE_TOKEN: ${{ secrets.LINODE_TOKEN }}
-          LINODE_CLUSTER_ID: ${{ secrets.LINODE_CLUSTER_ID }}
-
-  health-check:
-    name: Health Check
-    runs-on: ubuntu-latest
-    needs: deploy-infrastructure
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup kubectl
-        uses: azure/setup-kubectl@v3
-        with:
-          version: 'latest'
-
-      - name: Configure kubectl
-        run: |
-          # Get kubeconfig from Terraform output
-          cd terraform
-          terraform output -raw kubeconfig > ~/.kube/config
-          chmod 600 ~/.kube/config
-        env:
-          MONGODB_ATLAS_PUBLIC_KEY: ${{ secrets.MONGODB_ATLAS_PUBLIC_KEY }}
-          MONGODB_ATLAS_PRIVATE_KEY: ${{ secrets.MONGODB_ATLAS_PRIVATE_KEY }}
-          MONGODB_ATLAS_PROJECT_ID: ${{ secrets.MONGODB_ATLAS_PROJECT_ID }}
-          DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
-          DOCKER_HUB_PASSWORD: ${{ secrets.DOCKER_HUB_PASSWORD }}
-          LINODE_TOKEN: ${{ secrets.LINODE_TOKEN }}
-          LINODE_CLUSTER_ID: ${{ secrets.LINODE_CLUSTER_ID }}
-
-      - name: Wait for deployments to be ready
-        run: |
-          kubectl wait --for=condition=available --timeout=300s deployment/scottlms-api -n scottlms
-          kubectl wait --for=condition=available --timeout=300s deployment/scottlms-frontend -n scottlms
-
-      - name: Get service endpoints
-        id: endpoints
-        run: |
-          API_IP=$(kubectl get service scottlms-api-loadbalancer -n scottlms -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-          FRONTEND_IP=$(kubectl get service scottlms-frontend-loadbalancer -n scottlms -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-          echo "api-ip=$API_IP" >> $GITHUB_OUTPUT
-          echo "frontend-ip=$FRONTEND_IP" >> $GITHUB_OUTPUT
-
-      - name: Health check API
-        run: |
-          echo "Testing API health at http://${{ steps.endpoints.outputs.api-ip }}:8000/health"
-          for i in {1..30}; do
-            if curl -f http://${{ steps.endpoints.outputs.api-ip }}:8000/health; then
-              echo "API health check passed"
-              break
-            fi
-            echo "Attempt $i: API not ready, waiting 10 seconds..."
-            sleep 10
-          done
-
-      - name: Health check Frontend
-        run: |
-          echo "Testing Frontend health at http://${{ steps.endpoints.outputs.frontend-ip }}:80"
-          for i in {1..30}; do
-            if curl -f http://${{ steps.endpoints.outputs.frontend-ip }}:80; then
-              echo "Frontend health check passed"
-              break
-            fi
-            echo "Attempt $i: Frontend not ready, waiting 10 seconds..."
-            sleep 10
-          done
+        run: make terraform-apply
 
   notify:
     name: Notify Deployment Status
     runs-on: ubuntu-latest
-    needs: [build-and-push, deploy-infrastructure, health-check]
+    needs: [build-and-push, deploy-infrastructure]
     if: always()
     
     steps:
       - name: Deployment Success
-        if: needs.health-check.result == 'success'
+        if: needs.deploy-infrastructure.result == 'success'
         run: |
           echo "✅ Production deployment completed successfully!"
           echo "🚀 Application is live and healthy"
 
+      - name: Save Kubeconfig
+        if: needs.deploy-infrastructure.result == 'failure'
+        run: make save-kubeconfig
+
+      - name: Get API Logs
+        if: needs.deploy-infrastructure.result == 'failure'
+        run: kubectl logs -n scottlms deployment/scottlms-api
+
+      - name: Get Frontend Logs
+        if: needs.deploy-infrastructure.result == 'failure'
+        run: kubectl logs -n scottlms deployment/scottlms-frontend
+
       - name: Deployment Failure
-        if: needs.health-check.result == 'failure'
+        if: needs.deploy-infrastructure.result == 'failure'
         run: |
           echo "❌ Production deployment failed!"
           echo "🔍 Check the logs above for details"

@@ -3,16 +3,10 @@ name: Pull Request Validation
 on:
   pull_request:
     branches: [ main ]
-    paths:
-      - 'backend/**'
-      - 'frontend/**'
-      - 'terraform/**'
-      - 'docker-compose.yml'
   workflow_dispatch: # Manual trigger option
 
 env:
   TF_VERSION: '1.13.3'
-  PYTHON_VERSION: '3.11'
 
 jobs:
   validate-terraform:
@@ -21,7 +15,7 @@ jobs:
     if: contains(github.event.pull_request.changed_files, 'terraform/')
     
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Setup Terraform
@@ -51,7 +45,7 @@ jobs:
           TF_VAR_linode_cluster_id: ${{ secrets.LINODE_CLUSTER_ID }}
 
   build-and-test-docker-images:
-    name: Build Docker Images
+    name: Build and Test Docker Images
     runs-on: ubuntu-latest
     if: contains(github.event.pull_request.changed_files, 'backend/') || contains(github.event.pull_request.changed_files, 'frontend/')
     outputs:
@@ -81,10 +75,10 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Run Trivy vulnerability scanner
+      - name: Run Trivy Vulnerability Scanner
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
@@ -92,7 +86,7 @@ jobs:
           format: 'sarif'
           output: 'trivy-results.sarif'
 
-      - name: Upload Trivy scan results to GitHub Security tab
+      - name: Upload Trivy Scan Results to GitHub Security Tab
         uses: github/codeql-action/upload-sarif@v2
         if: always()
         with:
