@@ -5,17 +5,10 @@ on:
     branches: [ main ]
   workflow_dispatch: # Manual trigger option
 
-env:
-  TF_VERSION: '1.13.3'
-
 jobs:
   validate-terraform:
     name: Validate Terraform Configuration
     runs-on: ubuntu-latest
-    env:
-      TF_CLOUD_ORGANIZATION: "scottmc500"
-      TF_CLOUD_WORKSPACE: "scottlms-production"
-      TF_APP_TOKEN: ${{ secrets.TF_APP_TOKEN }}
     
     steps:
       - name: Checkout Code
@@ -24,7 +17,8 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: ${{ env.TF_VERSION }}
+          terraform_version: '1.13.3'
+          cli_config_credentials_token: ${{ secrets.TF_APP_TOKEN }}
 
       - name: Terraform Init
         run: make terraform-init
