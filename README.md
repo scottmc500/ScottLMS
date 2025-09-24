@@ -93,8 +93,8 @@ A modern, scalable Learning Management System built with FastAPI, MongoDB, Docke
    # Update kubeconfig
    aws eks update-kubeconfig --region us-west-2 --name scottlms-production
    
-   # Apply Kubernetes manifests
-   kubectl apply -k k8s/
+   # Deploy using Terraform
+   cd terraform && terraform apply -var="image_tag=latest" -auto-approve
    ```
 
 ## 📁 Project Structure
@@ -120,15 +120,6 @@ ScottLMS/
 │   │   ├── course_service.py
 │   │   └── enrollment_service.py
 │   └── main.py            # Application entry point
-├── k8s/                   # Kubernetes manifests
-│   ├── namespace.yaml
-│   ├── configmap.yaml
-│   ├── secret.yaml
-│   ├── deployment.yaml
-│   ├── service.yaml
-│   ├── ingress.yaml
-│   ├── hpa.yaml
-│   └── kustomization.yaml
 ├── terraform/             # Infrastructure as Code
 │   ├── main.tf
 │   ├── variables.tf
@@ -241,8 +232,8 @@ docker-compose down
    docker tag scottlms-api:latest <ecr-url>:latest
    docker push <ecr-url>:latest
    
-   # Deploy to Kubernetes
-   kubectl apply -k k8s/
+   # Deploy using Terraform
+   cd terraform && terraform apply -var="image_tag=latest" -auto-approve
    ```
 
 ## 📊 Monitoring

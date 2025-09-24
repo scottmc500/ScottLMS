@@ -6,8 +6,9 @@ A modular Streamlit application for the ScottLMS Learning Management System.
 
 ```
 frontend/
-├── main.py              # Main application entry point
+├── Home.py              # Home page entry point
 ├── config.py            # Configuration and settings
+├── styles.css           # Custom CSS styles
 ├── components/          # Reusable components
 │   ├── __init__.py
 │   ├── utils.py         # API utilities and helpers
@@ -15,10 +16,10 @@ frontend/
 │   └── tables.py        # Table display components
 ├── pages/               # Individual page modules
 │   ├── __init__.py
-│   ├── dashboard.py     # Dashboard logic
-│   ├── Users.py         # User management page
-│   ├── Courses.py       # Course management page
-│   └── Enrollments.py   # Enrollment management page
+│   ├── 1_Dashboard.py   # Dashboard logic
+│   ├── 2_Users.py       # User management page
+│   ├── 3_Courses.py     # Course management page
+│   └── 4_Enrollments.py # Enrollment management page
 └── README.md            # This file
 ```
 
@@ -47,7 +48,7 @@ make start  # Starts all services including frontend
 
 ### Manual Run (if needed)
 ```bash
-streamlit run frontend/main.py
+streamlit run frontend/Home.py
 ```
 
 ### Navigation
@@ -59,7 +60,7 @@ streamlit run frontend/main.py
 
 ### Adding a New Page
 1. Create a new file in `pages/` (e.g., `Analytics.py`)
-2. Use descriptive names (e.g., `Users.py`, `Courses.py`)
+2. Use descriptive names (e.g., `2_Users.py`, `3_Courses.py`)
 3. Import necessary components from `components/`
 4. Streamlit will automatically add it to the sidebar
 
@@ -74,7 +75,7 @@ streamlit run frontend/main.py
 
 ## 📁 Key Files
 
-- **`main.py`**: Entry point, shows dashboard
+- **`Home.py`**: Entry point, shows dashboard
 - **`config.py`**: All configuration and styling
 - **`components/utils.py`**: API communication functions
 - **`components/forms.py`**: All form components

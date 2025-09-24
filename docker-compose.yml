@@ -1,5 +1,8 @@
 services:
   api:
+    container_name: scottlms-api
+    image: smchenry2014/scottlms-api:latest
+    platform: linux/amd64
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -14,7 +17,6 @@ services:
         condition: service_healthy
     volumes:
       - ./backend:/app
-      - ../scripts:/app/scripts
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 10s
@@ -25,6 +27,7 @@ services:
       - scottlms-network
 
   mongodb:
+    container_name: scottlms-mongodb
     image: mongo:7.0
     ports:
       - "27017:27017"
@@ -45,6 +48,7 @@ services:
       - scottlms-network
 
   mongo-express:
+    container_name: scottlms-mongodb-express
     image: mongo-express:1.0.0
     ports:
       - "8081:8081"
@@ -66,7 +70,10 @@ services:
     networks:
       - scottlms-network
 
-  frontend:
+  ui:
+    container_name: scottlms-ui
+    image: smchenry2014/scottlms-ui:latest
+    platform: linux/amd64
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -78,7 +85,7 @@ services:
       api:
         condition: service_healthy
     volumes:
-      - ./frontend:/app/frontend
+      - ./frontend:/app
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8501')"]
       interval: 10s

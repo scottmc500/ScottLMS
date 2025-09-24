@@ -1,7 +1,0 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: scottlms
-  labels:
-    name: scottlms
-    app: scottlms

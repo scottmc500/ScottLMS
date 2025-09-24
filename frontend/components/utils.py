@@ -6,7 +6,7 @@ from typing import Any, Dict
 
 import requests
 
-from frontend.config import API_BASE_URL
+from config import API_BASE_URL
 
 
 def make_api_request(method: str, endpoint: str, data: Dict = None) -> Dict:
@@ -26,8 +26,12 @@ def make_api_request(method: str, endpoint: str, data: Dict = None) -> Dict:
         elif method.upper() == "DELETE":
             response = requests.delete(url, headers=headers, timeout=10)
 
-        if response.status_code in [200, 201]:
-            return {"success": True, "data": response.json()}
+        if response.status_code in [200, 201, 204]:
+            # Handle 204 No Content (successful DELETE) which has no response body
+            if response.status_code == 204:
+                return {"success": True, "data": None}
+            else:
+                return {"success": True, "data": response.json()}
         else:
             return {
                 "success": False,

@@ -1,82 +1,134 @@
-# Outputs for ScottLMS AWS Infrastructure
+# ScottLMS Infrastructure Outputs
+# MongoDB Atlas and Linode cluster information
 
-output "vpc_id" {
-  description = "ID of the VPC"
-  value       = module.vpc.vpc_id
+# === MONGODB ATLAS OUTPUTS ===
+
+output "mongodb_cluster_id" {
+  description = "MongoDB Atlas cluster ID"
+  value       = mongodbatlas_cluster.main.id
 }
 
-output "vpc_cidr_block" {
-  description = "CIDR block of the VPC"
-  value       = module.vpc.vpc_cidr_block
-}
-
-output "private_subnets" {
-  description = "List of IDs of private subnets"
-  value       = module.vpc.private_subnets
-}
-
-output "public_subnets" {
-  description = "List of IDs of public subnets"
-  value       = module.vpc.public_subnets
-}
-
-output "eks_cluster_id" {
-  description = "EKS cluster ID"
-  value       = module.eks.cluster_id
-}
-
-output "eks_cluster_arn" {
-  description = "EKS cluster ARN"
-  value       = module.eks.cluster_arn
-}
-
-output "eks_cluster_endpoint" {
-  description = "Endpoint for EKS control plane"
-  value       = module.eks.cluster_endpoint
-}
-
-output "eks_cluster_security_group_id" {
-  description = "Security group ID attached to the EKS cluster"
-  value       = module.eks.cluster_security_group_id
-}
-
-output "eks_node_security_group_id" {
-  description = "Security group ID attached to the EKS nodes"
-  value       = module.eks.node_security_group_id
-}
-
-output "eks_oidc_provider_arn" {
-  description = "ARN of the EKS OIDC provider"
-  value       = module.eks.oidc_provider_arn
-}
-
-output "ecr_repository_url" {
-  description = "URL of the ECR repository"
-  value       = aws_ecr_repository.scottlms.repository_url
-}
-
-output "alb_dns_name" {
-  description = "DNS name of the Application Load Balancer"
-  value       = module.alb.lb_dns_name
-}
-
-output "alb_zone_id" {
-  description = "Zone ID of the Application Load Balancer"
-  value       = module.alb.lb_zone_id
-}
-
-output "certificate_arn" {
-  description = "ARN of the SSL certificate"
-  value       = aws_acm_certificate.scottlms.arn
-}
-
-output "route53_zone_id" {
-  description = "Route53 hosted zone ID"
-  value       = aws_route53_zone.scottlms.zone_id
-}
-
-output "mongodb_atlas_cluster_connection_string" {
-  description = "MongoDB Atlas cluster connection string"
-  value       = mongodbatlas_cluster.scottlms.connection_strings[0].standard_srv
+output "mongodb_debug_info" {
+  description = "Debug information for MongoDB URL construction"
+  value       = local.mongodb_debug
   sensitive   = true
+}
+
+output "mongodb_connection_string" {
+  description = "MongoDB Atlas connection string"
+  value       = mongodbatlas_cluster.main.connection_strings[0].standard_srv
+  sensitive   = true
+}
+
+output "mongodb_database_name" {
+  description = "MongoDB database name"
+  value       = "scottlms"
+}
+
+output "mongodb_username" {
+  description = "MongoDB Atlas database username"
+  value       = random_string.mongodb_username.result
+  sensitive   = true
+}
+
+output "mongodb_password" {
+  description = "MongoDB Atlas database password"
+  value       = random_password.mongodb_user_password.result
+  sensitive   = true
+}
+
+output "mongodb_url" {
+  description = "Complete MongoDB connection URL with credentials"
+  value       = local.mongodb_url
+  sensitive   = true
+}
+
+# === LINODE CLUSTER OUTPUTS ===
+
+output "linode_cluster_id" {
+  description = "Linode LKE cluster ID"
+  value       = linode_lke_cluster.scottlms_cluster.id
+}
+
+output "linode_cluster_status" {
+  description = "Linode LKE cluster status"
+  value       = linode_lke_cluster.scottlms_cluster.status
+}
+
+output "linode_cluster_endpoint" {
+  description = "Linode LKE cluster API endpoint"
+  value       = linode_lke_cluster.scottlms_cluster.api_endpoints[0]
+}
+
+output "linode_cluster_region" {
+  description = "Linode LKE cluster region"
+  value       = linode_lke_cluster.scottlms_cluster.region
+}
+
+output "linode_cluster_label" {
+  description = "Linode LKE cluster label"
+  value       = linode_lke_cluster.scottlms_cluster.label
+}
+
+output "linode_cluster_version" {
+  description = "Linode LKE cluster Kubernetes version"
+  value       = linode_lke_cluster.scottlms_cluster.k8s_version
+}
+
+output "linode_cluster_kubeconfig" {
+  description = "Linode LKE cluster kubeconfig"
+  value = yamldecode(base64decode(linode_lke_cluster.scottlms_cluster.kubeconfig))
+  sensitive   = true
+}
+
+output "linode_cluster_kube_token" {
+  description = "Linode LKE cluster kube token"
+  value = yamldecode(base64decode(linode_lke_cluster.scottlms_cluster.kubeconfig)).users[0].user.token
+  sensitive   = true
+}
+
+output "linode_cluster_kube_certificate" {
+  description = "Linode LKE cluster kube certificate"
+  value = yamldecode(base64decode(linode_lke_cluster.scottlms_cluster.kubeconfig)).clusters[0].cluster.certificate-authority-data
+  sensitive   = true
+}
+
+# === KUBERNETES NAMESPACE ===
+
+output "kubernetes_namespace" {
+  description = "Kubernetes namespace name"
+  value       = kubernetes_namespace.scottlms.metadata[0].name
+}
+
+# === APPLICATION SERVICES ===
+
+output "application_service" {
+  description = "Application service endpoint for external access"
+  value = {
+    api_service = {
+      name = kubernetes_service.scottlms_api_loadbalancer[0].metadata[0].name
+      namespace = kubernetes_service.scottlms_api_loadbalancer[0].metadata[0].namespace
+      type = kubernetes_service.scottlms_api_loadbalancer[0].spec[0].type
+    }
+    frontend_service = {
+      name = kubernetes_service.scottlms_frontend_loadbalancer[0].metadata[0].name
+      namespace = kubernetes_service.scottlms_frontend_loadbalancer[0].metadata[0].namespace
+      type = kubernetes_service.scottlms_frontend_loadbalancer[0].spec[0].type
+    }
+  }
+}
+
+output "api_service_name" {
+  description = "API service name"
+  value       = kubernetes_service.scottlms_api_loadbalancer[0].metadata[0].name
+}
+
+output "frontend_external_ip" {
+  description = "Frontend service external IP"
+  value       = kubernetes_service.scottlms_frontend_loadbalancer[0].status[0].load_balancer[0].ingress[0].ip
+}
+
+output "api_external_ip" {
+  description = "API service external IP"
+  value       = kubernetes_service.scottlms_api_loadbalancer[0].status[0].load_balancer[0].ingress[0].ip
 }
