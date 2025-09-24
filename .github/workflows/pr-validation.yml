@@ -12,6 +12,10 @@ jobs:
   validate-terraform:
     name: Validate Terraform Configuration
     runs-on: ubuntu-latest
+    env:
+      TF_CLOUD_ORGANIZATION: "scottmc500"
+      TF_CLOUD_WORKSPACE: "scottlms-production"
+      TF_APP_TOKEN: ${{ secrets.TF_APP_TOKEN }}
     
     steps:
       - name: Checkout Code
