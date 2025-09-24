@@ -25,6 +25,14 @@ variable "atlas_project_id" {
   default     = ""
 }
 
+# === APPLICATION CONFIGURATION ===
+
+variable "app_image_tag" {
+  description = "Docker image tag for the application"
+  type        = string
+  default     = "latest"
+}
+
 # === DOCKER HUB CREDENTIALS (Required for private images) ===
 
 variable "docker_hub_username" {

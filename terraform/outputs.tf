@@ -8,6 +8,12 @@ output "mongodb_cluster_id" {
   value       = mongodbatlas_cluster.main.id
 }
 
+output "mongodb_debug_info" {
+  description = "Debug information for MongoDB URL construction"
+  value       = local.mongodb_debug
+  sensitive   = true
+}
+
 output "mongodb_connection_string" {
   description = "MongoDB Atlas connection string"
   value       = mongodbatlas_cluster.main.connection_strings[0].standard_srv
@@ -69,45 +75,60 @@ output "linode_cluster_version" {
   value       = linode_lke_cluster.scottlms_cluster.k8s_version
 }
 
-# === HELM DEPLOYMENT INFORMATION ===
-
-output "helm_deployment_info" {
-  description = "Information for Helm deployments"
-  value = {
-    cluster_endpoint = linode_lke_cluster.scottlms_cluster.api_endpoints[0]
-    cluster_name     = linode_lke_cluster.scottlms_cluster.label
-    mongodb_url      = local.mongodb_url
-    namespace        = "scottlms"
-  }
-  sensitive = true
+output "linode_cluster_kubeconfig" {
+  description = "Linode LKE cluster kubeconfig"
+  value = yamldecode(base64decode(linode_lke_cluster.scottlms_cluster.kubeconfig))
+  sensitive   = true
 }
 
-# === INFRASTRUCTURE SUMMARY ===
+output "linode_cluster_kube_token" {
+  description = "Linode LKE cluster kube token"
+  value = yamldecode(base64decode(linode_lke_cluster.scottlms_cluster.kubeconfig)).users[0].user.token
+  sensitive   = true
+}
 
-output "infrastructure_summary" {
-  description = "Summary of deployed infrastructure"
+output "linode_cluster_kube_certificate" {
+  description = "Linode LKE cluster kube certificate"
+  value = yamldecode(base64decode(linode_lke_cluster.scottlms_cluster.kubeconfig)).clusters[0].cluster.certificate-authority-data
+  sensitive   = true
+}
+
+# === KUBERNETES NAMESPACE ===
+
+output "kubernetes_namespace" {
+  description = "Kubernetes namespace name"
+  value       = kubernetes_namespace.scottlms.metadata[0].name
+}
+
+# === APPLICATION SERVICES ===
+
+output "application_service" {
+  description = "Application service endpoint for external access"
   value = {
-    mongodb_cluster = {
-      id     = mongodbatlas_cluster.main.id
-      tier   = "M0"
-      region = "US_EAST_1"
-      name   = mongodbatlas_cluster.main.name
+    api_service = {
+      name = kubernetes_service.scottlms_api_loadbalancer[0].metadata[0].name
+      namespace = kubernetes_service.scottlms_api_loadbalancer[0].metadata[0].namespace
+      type = kubernetes_service.scottlms_api_loadbalancer[0].spec[0].type
     }
-    kubernetes_cluster = {
-      id       = linode_lke_cluster.scottlms_cluster.id
-      region   = linode_lke_cluster.scottlms_cluster.region
-      label    = linode_lke_cluster.scottlms_cluster.label
-      version  = linode_lke_cluster.scottlms_cluster.k8s_version
-    }
-    deployment_method = {
-      description = "Kubernetes resources managed by Helm"
-      benefits = [
-        "Simplified Terraform infrastructure management",
-        "Flexible application deployment with Helm",
-        "Easy rollbacks and updates",
-        "Template-based configuration management"
-      ]
+    frontend_service = {
+      name = kubernetes_service.scottlms_frontend_loadbalancer[0].metadata[0].name
+      namespace = kubernetes_service.scottlms_frontend_loadbalancer[0].metadata[0].namespace
+      type = kubernetes_service.scottlms_frontend_loadbalancer[0].spec[0].type
     }
   }
-  sensitive = true
+}
+
+output "api_service_name" {
+  description = "API service name"
+  value       = kubernetes_service.scottlms_api_loadbalancer[0].metadata[0].name
+}
+
+output "frontend_external_ip" {
+  description = "Frontend service external IP"
+  value       = kubernetes_service.scottlms_frontend_loadbalancer[0].status[0].load_balancer[0].ingress[0].ip
+}
+
+output "api_external_ip" {
+  description = "API service external IP"
+  value       = kubernetes_service.scottlms_api_loadbalancer[0].status[0].load_balancer[0].ingress[0].ip
 }
