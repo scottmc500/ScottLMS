@@ -12,7 +12,6 @@ jobs:
   validate-terraform:
     name: Validate Terraform Configuration
     runs-on: ubuntu-latest
-    if: contains(github.event.pull_request.changed_files, 'terraform/')
     
     steps:
       - name: Checkout Code
@@ -47,10 +46,6 @@ jobs:
   build-and-test-docker-images:
     name: Build and Test Docker Images
     runs-on: ubuntu-latest
-    if: contains(github.event.pull_request.changed_files, 'backend/') || contains(github.event.pull_request.changed_files, 'frontend/')
-    outputs:
-      api-image: ${{ steps.build.outputs.api-image }}
-      ui-image: ${{ steps.build.outputs.ui-image }}
     
     steps:
       - name: Checkout code
