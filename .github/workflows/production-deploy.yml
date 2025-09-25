@@ -6,10 +6,6 @@ on:
   workflow_dispatch: # Manual trigger option
 
 env:
-  TF_VERSION: '1.13.3'
-  REGISTRY: 'smchenry2014'
-  API_IMAGE: 'scottlms-api'
-  UI_IMAGE: 'scottlms-ui'
   TAG: ${{ github.sha }}
 
 jobs:
@@ -52,8 +48,8 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: ${{ env.TF_VERSION }}
-          terraform_wrapper: false
+          terraform_version: '1.13.3'
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
 
       - name: Create terraform.tfvars from GitHub Secrets
         run: |
