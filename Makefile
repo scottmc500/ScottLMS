@@ -133,23 +133,19 @@ test-coverage: ## Run tests with coverage
 	python -m pytest --cov=backend --cov=frontend --cov-report=html --cov-report=term
 
 ##@ Deployment Commands
-save-kubeconfig: ## Save kubeconfig to ~/.kube/config and set cluster context
+k8s-sync-kubeconfig: ## Save kubeconfig to ~/.kube/config and set cluster context
 	@echo "$(GREEN)Saving kubeconfig to ~/.kube/config...$(NC)"
 	terraform -chdir=terraform output -raw linode_cluster_kubeconfig > ~/.kube/config
 	kubectl cluster-info
 	@echo "$(GREEN)Kubeconfig saved to ~/.kube/config!$(NC)"
 
-health-check: ## Check deployment health
-	@echo "$(GREEN)Checking deployment health...$(NC)"
+k8s-rollout-restart: ## Roll out deployment
+	@echo "$(GREEN)Rolling out deployment...$(NC)"
+	kubectl rollout restart deployment/scottlms-api -n scottlms
 	kubectl wait --for=condition=available --timeout=300s deployment/scottlms-api -n scottlms
+	kubectl rollout restart deployment/scottlms-frontend -n scottlms
 	kubectl wait --for=condition=available --timeout=300s deployment/scottlms-frontend -n scottlms
-	@echo "$(GREEN)Deployment health checked!$(NC)"
-
-get-service-endpoints: ## Get service endpoints
-	@echo "$(GREEN)Getting service endpoints...$(NC)"
-	kubectl get service scottlms-api-loadbalancer -n scottlms -o jsonpath='{.status.loadBalancer.ingress[0].ip}' > api-ip
-	kubectl get service scottlms-frontend-loadbalancer -n scottlms -o jsonpath='{.status.loadBalancer.ingress[0].ip}' > frontend-ip
-	@echo "$(GREEN)Service endpoints obtained!$(NC)"
+	@echo "$(GREEN)Deployment rolled out!$(NC)"
 
 ##@ Code Quality
 format: ## Format code with black

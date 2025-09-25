@@ -67,9 +67,6 @@ jobs:
           app_image_tag       = "${{ env.TAG }}"
           EOF
           echo "terraform.tfvars file created successfully"
-
-      - name: Verify terraform.tfvars Creation
-        run: |
           echo "Verifying terraform.tfvars file was created correctly..."
           if [ -f terraform/terraform.tfvars ]; then
             echo "✅ terraform.tfvars file exists"
@@ -102,6 +99,12 @@ jobs:
           else
             echo "No terraform.tfvars file to clean up"
           fi
+
+      - name: Synce Kubernetes Cluster
+        run: make sync-kubeconfig
+
+      - name: Roll out Deployment
+        run: make k8s-rollout-restart
 
   notify:
     name: Notify Deployment Status

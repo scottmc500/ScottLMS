@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [ main ]
   workflow_dispatch: # Manual trigger option
-  
+
 env:
   TAG: pr-${{ github.event.number }}
 
@@ -40,19 +40,6 @@ jobs:
           app_image_tag       = "${{ env.TAG }}"
           EOF
           echo "terraform.tfvars file created successfully"
-
-      - name: Terraform Init
-        run: make terraform-init
-
-      - name: Terraform Format Check
-        run: make terraform-check-fmt
-
-      - name: Terraform Validate
-        run: make terraform-validate
-
-
-      - name: Verify terraform.tfvars Creation
-        run: |
           echo "Verifying terraform.tfvars file was created correctly..."
           if [ -f terraform/terraform.tfvars ]; then
             echo "✅ terraform.tfvars file exists"
@@ -65,6 +52,15 @@ jobs:
             echo "❌ terraform.tfvars file not found!"
             exit 1
           fi
+
+      - name: Terraform Init
+        run: make terraform-init
+
+      - name: Terraform Format Check
+        run: make terraform-check-fmt
+
+      - name: Terraform Validate
+        run: make terraform-validate
 
       - name: Terraform Plan (Dry Run)
         run: make terraform-plan
