@@ -28,12 +28,12 @@ class TestFrontendConfig:
 
         # Re-import to get the new value
         import importlib
-        import frontend.config
+        import config
 
-        importlib.reload(frontend.config)
+        importlib.reload(config)
 
-        assert frontend.config.API_BASE_URL == "http://test-api:8000"
+        assert config.API_BASE_URL == "http://test-api:8000"
 
         # Clean up
         del os.environ["API_BASE_URL"]
-        importlib.reload(frontend.config)
+        importlib.reload(config)

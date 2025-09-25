@@ -10,6 +10,7 @@
 PROJECT_NAME := scottlms
 PYTHON := python3
 PIP := pip3
+TAG ?= latest
 
 # Colors for output
 RED := \033[0;31m
@@ -27,12 +28,12 @@ help: ## Display this help message
 ##@ Development
 docker-build: ## Build development environment with Docker
 	@echo "$(GREEN)Building development environment...$(NC)"
-	docker-compose build --parallel --no-cache
+	docker compose build --parallel --no-cache
 	@echo "$(GREEN)Development environment built!$(NC)"
 
-docker-start: docker-build ## Start development environment with Docker
+docker-start: ## Start development environment with Docker
 	@echo "$(GREEN)Starting development environment...$(NC)"
-	docker-compose up -d
+	docker compose up -d
 	@echo "$(GREEN)Development environment started!$(NC)"
 	@echo "$(BLUE)Access URLs:$(NC)"
 	@echo "  • Frontend: http://localhost"
@@ -41,19 +42,19 @@ docker-start: docker-build ## Start development environment with Docker
 	@echo "  • MongoDB Express: http://localhost:8081 (admin/admin)"
 
 docker-logs: ## View development logs
-	docker-compose logs -f
+	docker compose logs -f
 
 docker-stop: ## Stop development environment
 	@echo "$(GREEN)Stopping development environment...$(NC)"
-	docker-compose down
+	docker compose down
 
-docker-restart: docker-stop docker-start ## Restart development environment
+docker-restart: docker-stop docker-build docker-start ## Restart development environment
 
-docker-rebuild: docker-destroy docker-start ## Rebuild development environment
+docker-rebuild: docker-destroy docker-build docker-start ## Rebuild development environment
 
 docker-destroy: ## Destroy all development resources (containers, volumes, networks)
 	@echo "$(GREEN)Cleaning up everything...$(NC)"
-	docker-compose down -v --remove-orphans
+	docker compose down -v --remove-orphans
 	docker rmi -f $(shell docker images -q)
 	docker system prune -af
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
@@ -63,8 +64,20 @@ docker-destroy: ## Destroy all development resources (containers, volumes, netwo
 
 docker-push: docker-build ## Push Docker images to Docker Hub
 	@echo "$(GREEN)Pushing Docker images to Docker Hub...$(NC)"
-	docker-compose push
+	docker compose push
 	@echo "$(GREEN)Docker images pushed to Docker Hub!$(NC)"
+
+docker-test-backend: ## Test backend with Docker
+	@echo "$(GREEN)Testing backend with Docker (tag: $(TAG))...$(NC)"
+	docker run --platform linux/amd64 --rm smchenry2014/scottlms-api:$(TAG) python -m pytest
+	@echo "$(GREEN)Backend tests completed!$(NC)"
+
+docker-test-frontend: ## Test frontend with Docker
+	@echo "$(GREEN)Testing frontend with Docker (tag: $(TAG))...$(NC)"
+	docker run --platform linux/amd64 --rm smchenry2014/scottlms-ui:$(TAG) python -m pytest
+	@echo "$(GREEN)Frontend tests completed!$(NC)"
+
+docker-test-all: docker-test-backend docker-test-frontend ## Test all with Docker
 
 ##@ Terraform Commands
 terraform-init: ## Initialize Terraform
@@ -76,6 +89,16 @@ terraform-validate: ## Validate Terraform
 	@echo "$(GREEN)Validating Terraform...$(NC)"
 	terraform -chdir=terraform validate
 	@echo "$(GREEN)Terraform validated!$(NC)"
+
+terraform-set-fmt: ## Set Terraform format
+	@echo "$(GREEN)Setting Terraform format...$(NC)"
+	terraform -chdir=terraform fmt -recursive
+	@echo "$(GREEN)Terraform format set!$(NC)"
+
+terraform-check-fmt: ## Check Terraform format
+	@echo "$(GREEN)Checking Terraform format...$(NC)"
+	terraform -chdir=terraform fmt -check -recursive
+	@echo "$(GREEN)Terraform format checked!$(NC)"
 
 terraform-plan: ## Plan Terraform
 	@echo "$(GREEN)Planning Terraform...$(NC)"
@@ -109,6 +132,25 @@ test-coverage: ## Run tests with coverage
 	@echo "$(GREEN)Running tests with coverage...$(NC)"
 	python -m pytest --cov=backend --cov=frontend --cov-report=html --cov-report=term
 
+##@ Deployment Commands
+save-kubeconfig: ## Save kubeconfig to ~/.kube/config and set cluster context
+	@echo "$(GREEN)Saving kubeconfig to ~/.kube/config...$(NC)"
+	terraform -chdir=terraform output -raw linode_cluster_kubeconfig > ~/.kube/config
+	kubectl cluster-info
+	@echo "$(GREEN)Kubeconfig saved to ~/.kube/config!$(NC)"
+
+health-check: ## Check deployment health
+	@echo "$(GREEN)Checking deployment health...$(NC)"
+	kubectl wait --for=condition=available --timeout=300s deployment/scottlms-api -n scottlms
+	kubectl wait --for=condition=available --timeout=300s deployment/scottlms-frontend -n scottlms
+	@echo "$(GREEN)Deployment health checked!$(NC)"
+
+get-service-endpoints: ## Get service endpoints
+	@echo "$(GREEN)Getting service endpoints...$(NC)"
+	kubectl get service scottlms-api-loadbalancer -n scottlms -o jsonpath='{.status.loadBalancer.ingress[0].ip}' > api-ip
+	kubectl get service scottlms-frontend-loadbalancer -n scottlms -o jsonpath='{.status.loadBalancer.ingress[0].ip}' > frontend-ip
+	@echo "$(GREEN)Service endpoints obtained!$(NC)"
+
 ##@ Code Quality
 format: ## Format code with black
 	@echo "$(GREEN)Formatting code...$(NC)"
@@ -130,17 +172,17 @@ quality: format lint ## Run all code quality checks
 ##@ Building & Deployment
 build: ## Build Docker images
 	@echo "$(GREEN)Building Docker images...$(NC)"
-	docker-compose build --parallel --no-cache
+	docker compose build --parallel --no-cache
 	@echo "$(GREEN)Build complete!$(NC)"
 
 ##@ Database
 db-shell: ## Connect to MongoDB shell
-	docker-compose exec mongodb mongosh scottlms
+	docker compose exec mongodb mongosh scottlms
 
 db-reset: ## Reset database (WARNING: deletes all data)
 	@echo "$(RED)WARNING: This will delete all data!$(NC)"
 	@read -p "Are you sure? (y/N): " confirm && [ "$$confirm" = "y" ]
-	docker-compose exec mongodb mongosh scottlms --eval "db.dropDatabase()"
+	docker compose exec mongodb mongosh scottlms --eval "db.dropDatabase()"
 	@echo "$(GREEN)Database reset!$(NC)"
 
 test-all: test test-coverage ## Run all tests with coverage
@@ -151,7 +193,7 @@ status: ## Show development environment status
 	@echo "$(BLUE)=== Development Environment Status ===$(NC)"
 	@echo ""
 	@echo "$(YELLOW)Container Status:$(NC)"
-	@docker-compose ps
+	@docker compose ps
 	@echo ""
 	@echo "$(YELLOW)Service URLs:$(NC)"
 	@echo "  • Frontend: http://localhost:8501"

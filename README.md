@@ -1,21 +1,23 @@
 # ScottLMS - Learning Management System
 
-A modern, scalable Learning Management System built with FastAPI, MongoDB, Docker, Kubernetes, and AWS.
+A modern, scalable Learning Management System built with FastAPI, Streamlit, MongoDB, Docker, and Kubernetes.
 
 ## 🏗️ Architecture
 
 ### Tech Stack
-- **Backend**: Python FastAPI
-- **Database**: MongoDB (Atlas for production)
+- **Backend**: Python FastAPI with Pydantic v2
+- **Frontend**: Streamlit web application
+- **Database**: MongoDB with Beanie ODM
 - **Containerization**: Docker + Docker Compose (local) + Kubernetes (production)
-- **Cloud**: AWS (most services) + MongoDB Atlas (database)
+- **Cloud**: Linode Kubernetes Engine (LKE) + MongoDB Atlas
 - **Infrastructure as Code**: Terraform
+- **CI/CD**: GitHub Actions
 
 ### System Architecture
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Frontend      │    │   Load Balancer │    │   EKS Cluster   │
-│   (Future)      │◄──►│   (ALB)         │◄──►│   (FastAPI)     │
+│   Frontend      │    │   Load Balancer │    │   LKE Cluster   │
+│   (Streamlit)   │◄──►│   (Linode)      │◄──►│   (FastAPI)     │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
                                                         │
                                                         ▼
@@ -32,7 +34,7 @@ A modern, scalable Learning Management System built with FastAPI, MongoDB, Docke
 - Docker & Docker Compose
 - kubectl (for Kubernetes)
 - Terraform (for infrastructure)
-- AWS CLI configured
+- Linode CLI configured
 - MongoDB Atlas account
 
 ### Local Development
@@ -43,100 +45,116 @@ A modern, scalable Learning Management System built with FastAPI, MongoDB, Docke
    cd ScottLMS
    ```
 
-2. **Set up environment**
+2. **Start with Docker Compose**
    ```bash
-   # Create virtual environment
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   # Start all services
+   make docker-start
    
-   # Install dependencies
-   pip install -r requirements.txt
-   ```
-
-3. **Start with Docker Compose**
-   ```bash
+   # Or manually
    docker-compose up -d
    ```
 
-4. **Access the application**
+3. **Access the application**
+   - Frontend: http://localhost:8501
    - API: http://localhost:8000
    - API Documentation: http://localhost:8000/docs
    - MongoDB Express: http://localhost:8081 (admin/admin)
 
-### Production Deployment
+### Development Commands
 
-1. **Set up AWS Infrastructure**
-   ```bash
-   cd terraform
-   cp terraform.tfvars.example terraform.tfvars
-   # Edit terraform.tfvars with your values
-   
-   terraform init
-   terraform plan
-   terraform apply
-   ```
+```bash
+# View all available commands
+make help
 
-2. **Build and push Docker image**
-   ```bash
-   # Build image
-   docker build -t scottlms-api .
-   
-   # Tag for ECR
-   docker tag scottlms-api:latest <ecr-repository-url>:latest
-   
-   # Push to ECR
-   docker push <ecr-repository-url>:latest
-   ```
+# Start development environment
+make docker-start
 
-3. **Deploy to Kubernetes**
-   ```bash
-   # Update kubeconfig
-   aws eks update-kubeconfig --region us-west-2 --name scottlms-production
-   
-   # Deploy using Terraform
-   cd terraform && terraform apply -var="image_tag=latest" -auto-approve
-   ```
+# View logs
+make docker-logs
+
+# Stop development environment
+make docker-stop
+
+# Restart services
+make docker-restart
+
+# Run tests
+make test
+
+# Run backend tests only
+make test-backend
+
+# Run frontend tests only
+make test-frontend
+
+# Run tests with coverage
+make test-coverage
+
+# Test with Docker (using latest images)
+make docker-test-backend
+make docker-test-frontend
+make docker-test-all
+
+# Test with specific Docker tag
+TAG=v1.0.0 make docker-test-all
+```
 
 ## 📁 Project Structure
 
 ```
 ScottLMS/
-├── app/                    # FastAPI application
-│   ├── api/               # API routes and endpoints
-│   │   ├── router.py      # API router configuration
-│   │   ├── users.py       # User endpoints
-│   │   ├── courses.py     # Course endpoints
-│   │   └── enrollments.py # Enrollment endpoints
-│   ├── core/              # Core application modules
-│   │   ├── config.py      # Configuration settings
-│   │   ├── database.py    # Database connection
-│   │   └── exceptions.py  # Custom exceptions
-│   ├── models/            # Data models
-│   │   ├── user.py        # User model
-│   │   ├── course.py      # Course model
-│   │   └── enrollment.py  # Enrollment model
-│   ├── services/          # Business logic layer
-│   │   ├── user_service.py
-│   │   ├── course_service.py
-│   │   └── enrollment_service.py
-│   └── main.py            # Application entry point
+├── backend/                 # FastAPI backend application
+│   ├── entities/           # Pydantic models and Beanie documents
+│   │   ├── users.py        # User model
+│   │   ├── courses.py      # Course model
+│   │   └── enrollments.py  # Enrollment model
+│   ├── routers/            # API routes and endpoints
+│   │   ├── users.py        # User endpoints
+│   │   ├── courses.py      # Course endpoints
+│   │   └── enrollments.py  # Enrollment endpoints
+│   ├── tests/              # Backend tests
+│   │   ├── test_database.py
+│   │   ├── test_main.py
+│   │   ├── test_entities.py
+│   │   └── test_routers.py
+│   ├── database.py         # Database connection and initialization
+│   ├── main.py             # FastAPI application entry point
+│   ├── requirements.txt    # Backend dependencies
+│   └── Dockerfile          # Backend Docker image
+├── frontend/               # Streamlit frontend application
+│   ├── components/         # Reusable UI components
+│   │   ├── auth/          # Authentication components
+│   │   ├── courses/       # Course-related components
+│   │   ├── enrollments/   # Enrollment components
+│   │   ├── users/         # User management components
+│   │   └── shared/        # Shared components
+│   ├── pages/             # Streamlit pages
+│   │   ├── 1_Dashboard.py
+│   │   ├── 2_Users.py
+│   │   ├── 3_Courses.py
+│   │   └── 4_Enrollments.py
+│   ├── tests/             # Frontend tests
+│   │   ├── test_components.py
+│   │   ├── test_pages.py
+│   │   └── test_frontend_config.py
+│   ├── Home.py            # Main Streamlit application
+│   ├── config.py          # Frontend configuration
+│   ├── requirements.txt   # Frontend dependencies
+│   └── Dockerfile         # Frontend Docker image
 ├── terraform/             # Infrastructure as Code
-│   ├── main.tf
-│   ├── variables.tf
-│   ├── outputs.tf
-│   ├── vpc.tf
-│   ├── eks.tf
-│   ├── ecr.tf
-│   ├── alb.tf
-│   ├── route53.tf
-│   ├── mongodb.tf
-│   └── terraform.tfvars.example
-├── scripts/               # Utility scripts
-│   └── mongo-init.js      # MongoDB initialization
-├── Dockerfile             # Docker image definition
-├── docker-compose.yml     # Local development setup
-├── requirements.txt       # Python dependencies
-└── README.md             # This file
+│   ├── main.tf           # Main Terraform configuration
+│   ├── variables.tf      # Variable definitions
+│   ├── outputs.tf        # Output definitions
+│   ├── kubernetes.tf     # Kubernetes resources
+│   └── terraform.tfvars  # Variable values
+├── .github/              # GitHub Actions workflows
+│   └── workflows/
+│       └── pr-validation.yml  # PR validation pipeline
+├── scripts/              # Utility scripts
+│   └── mongo-init-local.js   # MongoDB initialization
+├── docker-compose.yml    # Local development setup
+├── Makefile             # Development commands
+└── README.md            # This file
 ```
 
 ## 🔧 Configuration
@@ -165,54 +183,77 @@ ScottLMS/
 ### Core Endpoints
 
 #### Users
-- `POST /users/` - Create user
-- `GET /users/` - List users
-- `GET /users/{id}` - Get user
-- `PUT /users/{id}` - Update user
-- `DELETE /users/{id}` - Delete user
+- `POST /api/users/` - Create user
+- `GET /api/users/` - List users
+- `GET /api/users/{id}` - Get user
+- `PUT /api/users/{id}` - Update user
+- `DELETE /api/users/{id}` - Delete user
 
 #### Courses
-- `POST /courses/` - Create course
-- `GET /courses/` - List courses
-- `GET /courses/{id}` - Get course
-- `PUT /courses/{id}` - Update course
-- `DELETE /courses/{id}` - Delete course
+- `POST /api/courses/` - Create course
+- `GET /api/courses/` - List courses
+- `GET /api/courses/{id}` - Get course
+- `PUT /api/courses/{id}` - Update course
+- `DELETE /api/courses/{id}` - Delete course
 
 #### Enrollments
-- `POST /enrollments/` - Create enrollment
-- `GET /enrollments/` - List enrollments
-- `GET /enrollments/{id}` - Get enrollment
-- `PUT /enrollments/{id}` - Update enrollment
-- `DELETE /enrollments/{id}` - Delete enrollment
+- `POST /api/enrollments/` - Create enrollment
+- `GET /api/enrollments/` - List enrollments
+- `GET /api/enrollments/{id}` - Get enrollment
+- `PUT /api/enrollments/{id}` - Update enrollment
+- `DELETE /api/enrollments/{id}` - Delete enrollment
 
 ### Interactive API Documentation
 Visit `/docs` when running the application for Swagger UI documentation.
 
 ## 🧪 Testing
 
+### Local Testing
 ```bash
-# Run tests
-pytest
+# Run all tests
+make test
+
+# Run backend tests only
+make test-backend
+
+# Run frontend tests only
+make test-frontend
 
 # Run tests with coverage
-pytest --cov=app
-
-# Run specific test file
-pytest tests/test_users.py
+make test-coverage
 ```
+
+### Docker Testing
+```bash
+# Test with latest Docker images
+make docker-test-backend
+make docker-test-frontend
+make docker-test-all
+
+# Test with specific tag
+TAG=v1.0.0 make docker-test-all
+```
+
+### Test Structure
+- **Backend Tests**: Unit tests for API endpoints, database operations, and Pydantic models
+- **Frontend Tests**: Component tests and page functionality tests
+- **Integration Tests**: End-to-end testing with Docker containers
 
 ## 🚀 Deployment
 
 ### Local Development
 ```bash
 # Start all services
-docker-compose up -d
+make docker-start
 
 # View logs
-docker-compose logs -f api
+make docker-logs
 
 # Stop services
-docker-compose down
+make docker-stop
+
+# Rebuild and restart
+make docker-rebuild
 ```
 
 ### Production Deployment
@@ -227,14 +268,44 @@ docker-compose down
 
 2. **Application Deployment**
    ```bash
-   # Build and push image
-   docker build -t scottlms-api .
-   docker tag scottlms-api:latest <ecr-url>:latest
-   docker push <ecr-url>:latest
+   # Build and push images
+   make docker-build
+   make docker-push
    
    # Deploy using Terraform
-   cd terraform && terraform apply -var="image_tag=latest" -auto-approve
+   cd terraform && terraform apply -auto-approve
    ```
+
+## 🔒 Security
+
+### Recent Security Updates
+- ✅ **All dependencies updated** to latest secure versions
+- ✅ **5 critical vulnerabilities fixed** (PyMongo, FastAPI, Requests)
+- ✅ **Pydantic v2 migration** completed
+- ✅ **Deprecation warnings resolved**
+
+### Security Features
+- JWT-based authentication (planned)
+- Role-based access control (student, instructor, admin)
+- Password hashing with bcrypt
+- Input validation with Pydantic v2
+- Security scanning in CI/CD pipeline
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes
+4. Run tests (`make test`)
+5. Commit your changes (`git commit -m 'Add some amazing feature'`)
+6. Push to the branch (`git push origin feature/amazing-feature`)
+7. Open a Pull Request
+
+### Development Workflow
+- All PRs are automatically validated with GitHub Actions
+- Tests must pass before merging
+- Security scanning is performed on all changes
+- Docker images are built and tested with PR-specific tags
 
 ## 📊 Monitoring
 
@@ -246,30 +317,27 @@ docker-compose down
 - Structured logging with JSON format
 - Log levels: DEBUG, INFO, WARNING, ERROR, CRITICAL
 
-### Metrics
-- Prometheus metrics available at `/metrics`
-- Kubernetes HPA configured for auto-scaling
+### CI/CD Pipeline
+- **PR Validation**: Terraform validation, Docker builds, tests, security scans
+- **Automated Testing**: Backend and frontend tests with Docker
+- **Security Scanning**: Trivy vulnerability scanning
+- **Docker Tagging**: PR-specific image tags for testing
 
-## 🔒 Security
+## 🗺️ Roadmap
 
-### Authentication & Authorization
-- JWT-based authentication (to be implemented)
-- Role-based access control (student, instructor, admin)
-- Password hashing with bcrypt
-
-### Infrastructure Security
-- VPC with private subnets
-- Security groups with minimal access
-- SSL/TLS termination at load balancer
-- Secrets managed via Kubernetes secrets and AWS Secrets Manager
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+- [x] Backend API with FastAPI
+- [x] Frontend with Streamlit
+- [x] MongoDB integration with Beanie
+- [x] Docker containerization
+- [x] Kubernetes deployment
+- [x] CI/CD pipeline
+- [x] Security vulnerability fixes
+- [ ] Authentication & authorization
+- [ ] File upload for course materials
+- [ ] Real-time notifications
+- [ ] Analytics and reporting
+- [ ] Advanced course features (quizzes, assignments)
+- [ ] Integration with external services
 
 ## 📝 License
 
@@ -279,14 +347,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 For support, email support@scottlms.com or create an issue in the repository.
 
-## 🗺️ Roadmap
+---
 
-- [ ] Frontend application (React/Next.js)
-- [ ] Authentication & authorization
-- [ ] File upload for course materials
-- [ ] Real-time notifications
-- [ ] Analytics and reporting
-- [ ] Mobile application
-- [ ] Advanced course features (quizzes, assignments)
-- [ ] Integration with external services
-A learning management system that uses a bunch of cool technologies.
+**ScottLMS** - A modern learning management system built with cutting-edge technologies.

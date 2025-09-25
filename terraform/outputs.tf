@@ -77,19 +77,7 @@ output "linode_cluster_version" {
 
 output "linode_cluster_kubeconfig" {
   description = "Linode LKE cluster kubeconfig"
-  value = yamldecode(base64decode(linode_lke_cluster.scottlms_cluster.kubeconfig))
-  sensitive   = true
-}
-
-output "linode_cluster_kube_token" {
-  description = "Linode LKE cluster kube token"
-  value = yamldecode(base64decode(linode_lke_cluster.scottlms_cluster.kubeconfig)).users[0].user.token
-  sensitive   = true
-}
-
-output "linode_cluster_kube_certificate" {
-  description = "Linode LKE cluster kube certificate"
-  value = yamldecode(base64decode(linode_lke_cluster.scottlms_cluster.kubeconfig)).clusters[0].cluster.certificate-authority-data
+  value       = base64decode(linode_lke_cluster.scottlms_cluster.kubeconfig)
   sensitive   = true
 }
 
@@ -106,14 +94,14 @@ output "application_service" {
   description = "Application service endpoint for external access"
   value = {
     api_service = {
-      name = kubernetes_service.scottlms_api_loadbalancer[0].metadata[0].name
+      name      = kubernetes_service.scottlms_api_loadbalancer[0].metadata[0].name
       namespace = kubernetes_service.scottlms_api_loadbalancer[0].metadata[0].namespace
-      type = kubernetes_service.scottlms_api_loadbalancer[0].spec[0].type
+      type      = kubernetes_service.scottlms_api_loadbalancer[0].spec[0].type
     }
     frontend_service = {
-      name = kubernetes_service.scottlms_frontend_loadbalancer[0].metadata[0].name
+      name      = kubernetes_service.scottlms_frontend_loadbalancer[0].metadata[0].name
       namespace = kubernetes_service.scottlms_frontend_loadbalancer[0].metadata[0].namespace
-      type = kubernetes_service.scottlms_frontend_loadbalancer[0].spec[0].type
+      type      = kubernetes_service.scottlms_frontend_loadbalancer[0].spec[0].type
     }
   }
 }
@@ -130,5 +118,5 @@ output "frontend_external_ip" {
 
 output "api_external_ip" {
   description = "API service external IP"
-  value       = kubernetes_service.scottlms_api_loadbalancer[0].status[0].load_balancer[0].ingress[0].ip
+  value       = "${kubernetes_service.scottlms_api_loadbalancer[0].status[0].load_balancer[0].ingress[0].ip}:8000"
 }

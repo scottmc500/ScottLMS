@@ -74,15 +74,15 @@ resource "kubernetes_deployment" "scottlms_api" {
     delete = "3m"
   }
 
-         spec {
-           replicas = 2
-           progress_deadline_seconds = 600
+  spec {
+    replicas                  = 2
+    progress_deadline_seconds = 600
 
-           selector {
-             match_labels = {
-               app = "scottlms-api"
-             }
-           }
+    selector {
+      match_labels = {
+        app = "scottlms-api"
+      }
+    }
 
     template {
       metadata {

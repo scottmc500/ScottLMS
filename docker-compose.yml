@@ -1,7 +1,7 @@
 services:
   api:
     container_name: scottlms-api
-    image: smchenry2014/scottlms-api:latest
+    image: smchenry2014/scottlms-api:${TAG:-latest}
     platform: linux/amd64
     build:
       context: ./backend
@@ -72,7 +72,7 @@ services:
 
   ui:
     container_name: scottlms-ui
-    image: smchenry2014/scottlms-ui:latest
+    image: smchenry2014/scottlms-ui:${TAG:-latest}
     platform: linux/amd64
     build:
       context: ./frontend

@@ -57,5 +57,5 @@ variable "linode_token" {
 
 variable "linode_cluster_id" {
   description = "ID of the existing Linode LKE cluster to import"
-  type        = number
+  type        = string
 }

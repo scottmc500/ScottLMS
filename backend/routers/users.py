@@ -32,7 +32,7 @@ async def create_user(user_data: UserCreate):
             )
 
         # Create new user
-        user_dict = user_data.dict()
+        user_dict = user_data.model_dump()
         password = user_dict.pop("password")
         user_dict["hashed_password"] = hash_password(password)
 
@@ -40,7 +40,7 @@ async def create_user(user_data: UserCreate):
         await user.save()
 
         logger.info(f"Created user: {user.email}")
-        user_dict = user.dict()
+        user_dict = user.model_dump()
         # Handle both _id and id cases
         if "_id" in user_dict:
             user_dict["id"] = user_dict.pop("_id")
@@ -64,7 +64,7 @@ async def get_users():
         users = await User.find_all().to_list()
         result = []
         for user in users:
-            user_dict = user.dict()
+            user_dict = user.model_dump()
             logger.debug(f"User dict keys: {list(user_dict.keys())}")
             # Handle both _id and id cases
             if "_id" in user_dict:
@@ -91,7 +91,7 @@ async def get_user(user_id: PydanticObjectId):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
             )
-        user_dict = user.dict()
+        user_dict = user.model_dump()
         # Handle both _id and id cases
         if "_id" in user_dict:
             user_dict["id"] = user_dict.pop("_id")
@@ -120,13 +120,13 @@ async def update_user(user_id: PydanticObjectId, user_data: UserUpdate):
             )
 
         # Update fields
-        update_data = user_data.dict(exclude_unset=True)
+        update_data = user_data.model_dump(exclude_unset=True)
         for field, value in update_data.items():
             setattr(user, field, value)
 
         await user.save()
         logger.info(f"Updated user: {user.email}")
-        user_dict = user.dict()
+        user_dict = user.model_dump()
         # Handle both _id and id cases
         if "_id" in user_dict:
             user_dict["id"] = user_dict.pop("_id")
