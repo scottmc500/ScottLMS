@@ -5,6 +5,9 @@ on:
     branches: [ main ]
   workflow_dispatch: # Manual trigger option
 
+env:
+  TAG: ${{ github.sha }}
+
 jobs:
   build-and-push:
     name: Build and Push Docker Images
@@ -61,7 +64,7 @@ jobs:
           docker_hub_password = "${{ secrets.DOCKER_HUB_PASSWORD }}"
           linode_token        = "${{ secrets.LINODE_TOKEN }}"
           linode_cluster_id   = "${{ secrets.LINODE_CLUSTER_ID }}"
-          app_image_tag       = "${{ github.sha }}"
+          app_image_tag       = "${{ env.TAG }}"
           EOF
           echo "terraform.tfvars file created successfully"
           cat terraform/terraform.tfvars
