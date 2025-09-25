@@ -5,9 +5,6 @@ on:
     branches: [ main ]
   workflow_dispatch: # Manual trigger option
 
-env:
-  TAG: pr-${{ github.event.number }}
-
 jobs:
   validate-terraform:
     name: Validate Terraform Configuration
@@ -37,21 +34,10 @@ jobs:
           docker_hub_password = "${{ secrets.DOCKER_HUB_PASSWORD }}"
           linode_token        = "${{ secrets.LINODE_TOKEN }}"
           linode_cluster_id   = "${{ secrets.LINODE_CLUSTER_ID }}"
-          app_image_tag       = "${{ env.TAG }}"
+          app_image_tag       = "pr-${{ github.event.number }}"
           EOF
           echo "terraform.tfvars file created successfully"
-          echo "Verifying terraform.tfvars file was created correctly..."
-          if [ -f terraform/terraform.tfvars ]; then
-            echo "✅ terraform.tfvars file exists"
-            echo "File size: $(wc -c < terraform/terraform.tfvars) bytes"
-            echo "Number of lines: $(wc -l < terraform/terraform.tfvars)"
-            echo ""
-            echo "File contents (masked for security):"
-            sed 's/= ".*"/= "***MASKED***"/g' terraform/terraform.tfvars
-          else
-            echo "❌ terraform.tfvars file not found!"
-            exit 1
-          fi
+          cat terraform/terraform.tfvars
 
       - name: Terraform Init
         run: make terraform-init

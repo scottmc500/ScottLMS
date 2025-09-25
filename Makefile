@@ -62,7 +62,7 @@ docker-destroy: ## Destroy all development resources (containers, volumes, netwo
 	rm -rf .pytest_cache/ htmlcov/ .coverage
 	@echo "$(GREEN)All development resources destroyed!$(NC)"
 
-docker-push: docker-build ## Push Docker images to Docker Hub
+docker-push: ## Push Docker images to Docker Hub
 	@echo "$(GREEN)Pushing Docker images to Docker Hub...$(NC)"
 	docker compose push
 	@echo "$(GREEN)Docker images pushed to Docker Hub!$(NC)"
