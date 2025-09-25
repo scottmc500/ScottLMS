@@ -11,14 +11,6 @@ env:
   API_IMAGE: 'scottlms-api'
   UI_IMAGE: 'scottlms-ui'
   TAG: ${{ github.sha }}
-  TF_VAR_atlas_public_key: ${{ secrets.MONGODB_ATLAS_PUBLIC_KEY }}
-  TF_VAR_atlas_private_key: ${{ secrets.MONGODB_ATLAS_PRIVATE_KEY }}
-  TF_VAR_atlas_org_id: ${{ secrets.MONGODB_ATLAS_ORG_ID }}
-  TF_VAR_atlas_project_id: ${{ secrets.MONGODB_ATLAS_PROJECT_ID }}
-  TF_VAR_docker_hub_username: ${{ secrets.DOCKER_HUB_USERNAME }}
-  TF_VAR_docker_hub_password: ${{ secrets.DOCKER_HUB_PASSWORD }}
-  TF_VAR_linode_token: ${{ secrets.LINODE_TOKEN }}
-  TF_VAR_linode_cluster_id: ${{ secrets.LINODE_CLUSTER_ID }}
 
 jobs:
   build-and-push:
@@ -63,6 +55,38 @@ jobs:
           terraform_version: ${{ env.TF_VERSION }}
           terraform_wrapper: false
 
+      - name: Create terraform.tfvars from GitHub Secrets
+        run: |
+          echo "Creating terraform.tfvars file from GitHub secrets..."
+          cat > terraform/terraform.tfvars << EOF
+          # Generated from GitHub Secrets for Production Deployment
+          atlas_public_key    = "${{ secrets.MONGODB_ATLAS_PUBLIC_KEY }}"
+          atlas_private_key   = "${{ secrets.MONGODB_ATLAS_PRIVATE_KEY }}"
+          atlas_org_id        = "${{ secrets.MONGODB_ATLAS_ORG_ID }}"
+          atlas_project_id    = "${{ secrets.MONGODB_ATLAS_PROJECT_ID }}"
+          docker_hub_username = "${{ secrets.DOCKER_HUB_USERNAME }}"
+          docker_hub_password = "${{ secrets.DOCKER_HUB_PASSWORD }}"
+          linode_token        = "${{ secrets.LINODE_TOKEN }}"
+          linode_cluster_id   = "${{ secrets.LINODE_CLUSTER_ID }}"
+          app_image_tag       = "${{ env.TAG }}"
+          EOF
+          echo "terraform.tfvars file created successfully"
+
+      - name: Verify terraform.tfvars Creation
+        run: |
+          echo "Verifying terraform.tfvars file was created correctly..."
+          if [ -f terraform/terraform.tfvars ]; then
+            echo "✅ terraform.tfvars file exists"
+            echo "File size: $(wc -c < terraform/terraform.tfvars) bytes"
+            echo "Number of lines: $(wc -l < terraform/terraform.tfvars)"
+            echo ""
+            echo "File contents (masked for security):"
+            sed 's/= ".*"/= "***MASKED***"/g' terraform/terraform.tfvars
+          else
+            echo "❌ terraform.tfvars file not found!"
+            exit 1
+          fi
+
       - name: Terraform Init
         run: make terraform-init
 
@@ -71,6 +95,17 @@ jobs:
 
       - name: Terraform Apply
         run: make terraform-apply
+
+      - name: Cleanup terraform.tfvars
+        if: always()
+        run: |
+          echo "Cleaning up terraform.tfvars file for security..."
+          if [ -f terraform/terraform.tfvars ]; then
+            rm terraform/terraform.tfvars
+            echo "✅ terraform.tfvars file removed"
+          else
+            echo "No terraform.tfvars file to clean up"
+          fi
 
   notify:
     name: Notify Deployment Status
