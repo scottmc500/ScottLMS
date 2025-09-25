@@ -9,19 +9,11 @@ jobs:
   validate-terraform:
     name: Validate Terraform Configuration
     runs-on: ubuntu-latest
-    env:
-      TF_VAR_atlas_public_key: '${{ secrets.MONGODB_ATLAS_PUBLIC_KEY }}'
-      TF_VAR_atlas_private_key: '${{ secrets.MONGODB_ATLAS_PRIVATE_KEY }}'
-      TF_VAR_atlas_org_id: '${{ secrets.MONGODB_ATLAS_ORG_ID }}'
-      TF_VAR_atlas_project_id: '${{ secrets.MONGODB_ATLAS_PROJECT_ID }}'
-      TF_VAR_docker_hub_username: '${{ secrets.DOCKER_HUB_USERNAME }}'
-      TF_VAR_docker_hub_password: '${{ secrets.DOCKER_HUB_PASSWORD }}'
-      TF_VAR_linode_token: '${{ secrets.LINODE_TOKEN }}'
-      TF_VAR_linode_cluster_id: '${{ secrets.LINODE_CLUSTER_ID }}'
     
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -29,14 +21,22 @@ jobs:
           terraform_version: '1.13.3'
           cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
 
-      - name: Remove terraform.tfvars to use environment variables
+      - name: Create terraform.tfvars from GitHub Secrets
         run: |
-          if [ -f terraform/terraform.tfvars ]; then
-            echo "Removing terraform.tfvars to ensure environment variables are used"
-            rm terraform/terraform.tfvars
-          else
-            echo "No terraform.tfvars file found"
-          fi
+          echo "Creating terraform.tfvars file from GitHub secrets..."
+          cat > terraform/terraform.tfvars << EOF
+          # Generated from GitHub Secrets for CI/CD Pipeline
+          atlas_public_key  = "${{ secrets.MONGODB_ATLAS_PUBLIC_KEY }}"
+          atlas_private_key = "${{ secrets.MONGODB_ATLAS_PRIVATE_KEY }}"
+          atlas_org_id      = "${{ secrets.MONGODB_ATLAS_ORG_ID }}"
+          atlas_project_id  = "${{ secrets.MONGODB_ATLAS_PROJECT_ID }}"
+          docker_hub_username = "${{ secrets.DOCKER_HUB_USERNAME }}"
+          docker_hub_password = "${{ secrets.DOCKER_HUB_PASSWORD }}"
+          linode_token      = "${{ secrets.LINODE_TOKEN }}"
+          linode_cluster_id = "${{ secrets.LINODE_CLUSTER_ID }}"
+          EOF
+          echo "terraform.tfvars file created successfully"
+          cat terraform/terraform.tfvars
 
       - name: Terraform Init
         run: make terraform-init
@@ -47,49 +47,35 @@ jobs:
       - name: Terraform Validate
         run: make terraform-validate
 
-      - name: Debug Environment Variables
-        run: |
-          echo "Checking environment variables..."
-          echo "TF_VAR_atlas_public_key is set: $([ -n "$TF_VAR_atlas_public_key" ] && echo "YES" || echo "NO")"
-          echo "TF_VAR_atlas_private_key is set: $([ -n "$TF_VAR_atlas_private_key" ] && echo "YES" || echo "NO")"
-          echo "TF_VAR_atlas_org_id is set: $([ -n "$TF_VAR_atlas_org_id" ] && echo "YES" || echo "NO")"
-          echo "TF_VAR_atlas_project_id is set: $([ -n "$TF_VAR_atlas_project_id" ] && echo "YES" || echo "NO")"
-          echo "TF_VAR_docker_hub_username is set: $([ -n "$TF_VAR_docker_hub_username" ] && echo "YES" || echo "NO")"
-          echo "TF_VAR_docker_hub_password is set: $([ -n "$TF_VAR_docker_hub_password" ] && echo "YES" || echo "NO")"
-          echo "TF_VAR_linode_token is set: $([ -n "$TF_VAR_linode_token" ] && echo "YES" || echo "NO")"
-          echo "TF_VAR_linode_cluster_id is set: $([ -n "$TF_VAR_linode_cluster_id" ] && echo "YES" || echo "NO")"
 
-      - name: Debug Terraform Configuration
+      - name: Verify terraform.tfvars Creation
         run: |
-          echo "Current working directory: $(pwd)"
-          echo "Terraform directory contents:"
-          ls -la terraform/
-          echo ""
-          echo "Checking Terraform variables file:"
-          cat terraform/variables.tf
-          echo ""
-          echo "Checking if terraform.tfvars exists:"
-          ls -la terraform/terraform.tfvars* || echo "No terraform.tfvars files found"
-          echo ""
-          echo "Checking Terraform state:"
-          cd terraform && terraform show || echo "No state file or not initialized"
-
-      - name: Debug Terraform Variables
-        run: |
-          echo "Checking what Terraform sees for variables:"
-          cd terraform
-          echo "Testing terraform validate to check variable resolution..."
-          terraform validate -json | jq -r '.diagnostics[] | select(.severity == "error") | .summary' || echo "No validation errors found"
-          echo ""
-          echo "Checking if terraform can access variables by running a simple plan check..."
-          timeout 30 terraform plan -target=random_password.mongodb_user_password -no-color || echo "Plan check completed or timed out"
+          echo "Verifying terraform.tfvars file was created correctly..."
+          if [ -f terraform/terraform.tfvars ]; then
+            echo "✅ terraform.tfvars file exists"
+            echo "File size: $(wc -c < terraform/terraform.tfvars) bytes"
+            echo "Number of lines: $(wc -l < terraform/terraform.tfvars)"
+            echo ""
+            echo "File contents (masked for security):"
+            sed 's/= ".*"/= "***MASKED***"/g' terraform/terraform.tfvars
+          else
+            echo "❌ terraform.tfvars file not found!"
+            exit 1
+          fi
 
       - name: Terraform Plan (Dry Run)
+        run: make terraform-plan
+
+      - name: Cleanup terraform.tfvars
+        if: always()
         run: |
-          echo "Running terraform plan with verbose output..."
-          cd terraform
-          terraform plan -detailed-exitcode -no-color
-        continue-on-error: true
+          echo "Cleaning up terraform.tfvars file for security..."
+          if [ -f terraform/terraform.tfvars ]; then
+            rm terraform/terraform.tfvars
+            echo "✅ terraform.tfvars file removed"
+          else
+            echo "No terraform.tfvars file to clean up"
+          fi
 
   build-and-test-docker-images:
     name: Build and Test Docker Images
