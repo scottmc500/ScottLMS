@@ -78,14 +78,11 @@ jobs:
         run: |
           echo "Checking what Terraform sees for variables:"
           cd terraform
-          terraform console <<< "var.atlas_public_key" || echo "Failed to get atlas_public_key"
-          terraform console <<< "var.atlas_private_key" || echo "Failed to get atlas_private_key"
-          terraform console <<< "var.atlas_org_id" || echo "Failed to get atlas_org_id"
-          terraform console <<< "var.atlas_project_id" || echo "Failed to get atlas_project_id"
-          terraform console <<< "var.docker_hub_username" || echo "Failed to get docker_hub_username"
-          terraform console <<< "var.docker_hub_password" || echo "Failed to get docker_hub_password"
-          terraform console <<< "var.linode_token" || echo "Failed to get linode_token"
-          terraform console <<< "var.linode_cluster_id" || echo "Failed to get linode_cluster_id"
+          echo "Testing terraform validate to check variable resolution..."
+          terraform validate -json | jq -r '.diagnostics[] | select(.severity == "error") | .summary' || echo "No validation errors found"
+          echo ""
+          echo "Checking if terraform can access variables by running a simple plan check..."
+          timeout 30 terraform plan -target=random_password.mongodb_user_password -no-color || echo "Plan check completed or timed out"
 
       - name: Terraform Plan (Dry Run)
         run: |
