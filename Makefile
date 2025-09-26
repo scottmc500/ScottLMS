@@ -139,7 +139,8 @@ test-coverage: ## Run tests with coverage
 ##@ Kubernetes Commands
 k8s-sync-kubeconfig: ## Save kubeconfig to ~/.kube/config and set cluster context
 	@echo "$(GREEN)Saving kubeconfig to ~/.kube/config...$(NC)"
-	@terraform -chdir=terraform output -raw linode_cluster_kubeconfig > ~/.kube/config
+	terraform -chdir=terraform output -raw linode_cluster_kubeconfig > ~/.kube/config
+	cat ~/.kube/config
 	@kubectl cluster-info
 	@echo "$(GREEN)Kubeconfig saved to ~/.kube/config!$(NC)"
 
