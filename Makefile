@@ -143,7 +143,7 @@ k8s-sync-kubeconfig: ## Save kubeconfig to ~/.kube/config and set cluster contex
 	@kubectl cluster-info
 	@echo "$(GREEN)Kubeconfig saved to ~/.kube/config!$(NC)"
 
-k8s-set-infrastructure: ## Set environment variables and deploy infrastructure
+k8s-set-environment: ## Set environment variables and deploy infrastructure
 	@echo "$(GREEN)Setting environment variables for Kubernetes infrastructure...$(NC)"
 	@echo "$(GREEN)Deploying environment to Kubernetes...$(NC)"
 	@kubectl apply -f kubernetes/environment.yaml
@@ -200,7 +200,7 @@ k8s-deploy-backend: ## Deploy backend (check, build, or update)
 	@echo "$(GREEN)Backend external IP: $(BACKEND_EXTERNAL_IP):8000$(NC)"
 	@echo "$(GREEN)Backend deployment complete!$(NC)"
 
-full-deployment: docker-build docker-push k8s-sync-kubeconfig k8s-set-infrastructure k8s-deploy-backend k8s-deploy-frontend ## Full deployment
+full-deployment: docker-build docker-push k8s-sync-kubeconfig k8s-set-environment k8s-deploy-backend k8s-deploy-frontend ## Full deployment
 	@echo "$(GREEN)Full deployment complete!$(NC)"
 
 ##@ Health Checks

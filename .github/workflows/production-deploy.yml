@@ -111,16 +111,17 @@ jobs:
         run: make terraform-init
 
       - name: Sync Kubeconfig
-        run: make terraform-sync-kubeconfig
+        run: make k8s-sync-kubeconfig
 
       - name: Setup Environment
-        run: make terraform-setup-environment
+        run: make k8s-set-environment
 
       - name: Deploy Backend
-        run: make terraform-deploy-backend
+        run: make k8s-deploy-backend
+        id: deploy-backend
 
       - name: Deploy Frontend
-        run: make terraform-deploy-frontend
+        run: make k8s-deploy-frontend
 
       - name: Perform Health Checks
         run: make perform-health-checks
@@ -138,9 +139,20 @@ jobs:
           echo "✅ Production deployment completed successfully!"
           echo "🚀 Application is live and healthy"
 
-      - name: Save Kubeconfig
+      - name: Setup Terraform
         if: needs.deploy-application.result == 'failure'
-        run: make save-kubeconfig
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.13.3'
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+
+      - name: Terraform Init
+        if: needs.deploy-application.result == 'failure'
+        run: make terraform-init
+
+      - name: Sync Kubeconfig
+        if: needs.deploy-application.result == 'failure'
+        run: make k8s-sync-kubeconfig
 
       - name: Get API Logs
         if: needs.deploy-application.result == 'failure'
