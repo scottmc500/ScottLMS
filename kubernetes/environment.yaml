@@ -1,0 +1,25 @@
+# ScottLMS Environment Layer
+# Environment-level resources (namespace, configmap)
+# This file contains the foundational environment resources needed for the application
+
+---
+# Kubernetes Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: scottlms
+  labels:
+    app: scottlms
+
+---
+# Application Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scottlms-config
+  namespace: scottlms
+data:
+  API_PORT: "8000"
+  FRONTEND_PORT: "8501"
+  API_BASE_URL: "http://scottlms-api-loadbalancer:8000"
+
