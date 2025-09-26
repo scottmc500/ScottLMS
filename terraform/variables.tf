@@ -33,12 +33,6 @@ variable "api_cidr_block" {
   default     = "0.0.0.0/0"
 }
 
-variable "frontend_cidr_block" {
-  description = "CIDR block for Frontend LoadBalancer MongoDB access"
-  type        = string
-  default     = "0.0.0.0/0"
-}
-
 # === LINODE IMPORT CONFIGURATION ===
 
 variable "linode_token" {

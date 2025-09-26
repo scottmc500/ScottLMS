@@ -127,20 +127,14 @@ terraform-destroy: ## Destroy Terraform
 
 terraform-build-tfvars: k8s-sync-kubeconfig ## Build Terraform variables
 	@echo "$(GREEN)Building Terraform variables...$(NC)"
+	$(eval API_CIDR := "0.0.0.0/0")
 	@if kubectl get service scottlms-api-loadbalancer -n scottlms >/dev/null 2>&1; then \
 		echo "$(YELLOW)API LoadBalancer exists, getting CIDR block...$(NC)"; \
 		$(eval API_CIDR := $(shell kubectl get service scottlms-api-loadbalancer -n scottlms -o jsonpath='{.status.loadBalancer.ingress[0].ip}')/32) \
 	else \
 		echo "$(YELLOW)API LoadBalancer does not exist, using 0.0.0.0/0 for open access$(NC)"; \
-		$(eval API_CIDR := "0.0.0.0/0") \
 	fi
-	@if kubectl get service scottlms-frontend-loadbalancer -n scottlms >/dev/null 2>&1; then \
-		echo "$(YELLOW)Frontend LoadBalancer exists, getting CIDR block...$(NC)"; \
-		$(eval FRONTEND_CIDR := $(shell kubectl get service scottlms-frontend-loadbalancer -n scottlms -o jsonpath='{.status.loadBalancer.ingress[0].ip}')/32) \
-	else \
-		echo "$(YELLOW)Frontend LoadBalancer does not exist, using 0.0.0.0/0 for open access$(NC)"; \
-		$(eval FRONTEND_CIDR := "0.0.0.0/0") \
-	fi
+	@echo "$(GREEN)API CIDR block: $(API_CIDR)$(NC)"
 	@echo "$(GREEN)Creating terraform.tfvars file from Makefile...$(NC)"
 	@echo "# Generated from Makefile for Production Deployment" > terraform/terraform.tfvars
 	@echo "atlas_public_key    = \"$(MONGODB_ATLAS_PUBLIC_KEY)\"" >> terraform/terraform.tfvars
@@ -150,7 +144,6 @@ terraform-build-tfvars: k8s-sync-kubeconfig ## Build Terraform variables
 	@echo "linode_token        = \"$(LINODE_TOKEN)\"" >> terraform/terraform.tfvars
 	@echo "linode_cluster_id   = \"$(LINODE_CLUSTER_ID)\"" >> terraform/terraform.tfvars
 	@echo "api_cidr_block      = \"$(API_CIDR)\"" >> terraform/terraform.tfvars
-	@echo "frontend_cidr_block = \"$(FRONTEND_CIDR)\"" >> terraform/terraform.tfvars
 	@cat terraform/terraform.tfvars
 	@echo "$(GREEN)Terraform variables created!$(NC)"
 

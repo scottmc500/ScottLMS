@@ -111,9 +111,3 @@ resource "mongodbatlas_project_ip_access_list" "api_loadbalancer" {
   cidr_block = var.api_cidr_block
   comment    = "API LoadBalancer CIDR: ${var.api_cidr_block}"
 }
-
-resource "mongodbatlas_project_ip_access_list" "frontend_loadbalancer" {
-  project_id = var.atlas_project_id
-  cidr_block = var.frontend_cidr_block
-  comment    = "Frontend LoadBalancer CIDR: ${var.frontend_cidr_block}"
-}
