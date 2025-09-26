@@ -30,21 +30,20 @@ variable "atlas_project_id" {
 variable "app_image_tag" {
   description = "Docker image tag for the application"
   type        = string
-  default     = "latest"
 }
 
-# === DOCKER HUB CREDENTIALS (Required for private images) ===
+# === MONGODB ACCESS CIDR BLOCKS ===
 
-variable "docker_hub_username" {
-  description = "Docker Hub username for pulling images"
+variable "api_cidr_block" {
+  description = "CIDR block for API LoadBalancer MongoDB access"
   type        = string
-  sensitive   = true
+  default     = "0.0.0.0/0"
 }
 
-variable "docker_hub_password" {
-  description = "Docker Hub password or access token for pulling images"
+variable "frontend_cidr_block" {
+  description = "CIDR block for Frontend LoadBalancer MongoDB access"
   type        = string
-  sensitive   = true
+  default     = "0.0.0.0/0"
 }
 
 # === LINODE IMPORT CONFIGURATION ===
