@@ -106,6 +106,24 @@ jobs:
         with:
           terraform_version: '1.13.3'
           cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+      
+      - name: Create terraform.tfvars from GitHub Secrets
+        run: |
+          echo "Creating terraform.tfvars file from GitHub secrets..."
+          cat > terraform/terraform.tfvars << EOF
+          # Generated from GitHub Secrets for Production Deployment
+          atlas_public_key    = "${{ secrets.MONGODB_ATLAS_PUBLIC_KEY }}"
+          atlas_private_key   = "${{ secrets.MONGODB_ATLAS_PRIVATE_KEY }}"
+          atlas_org_id        = "${{ secrets.MONGODB_ATLAS_ORG_ID }}"
+          atlas_project_id    = "${{ secrets.MONGODB_ATLAS_PROJECT_ID }}"
+          docker_hub_username = "${{ secrets.DOCKER_HUB_USERNAME }}"
+          docker_hub_password = "${{ secrets.DOCKER_HUB_PASSWORD }}"
+          linode_token        = "${{ secrets.LINODE_TOKEN }}"
+          linode_cluster_id   = "${{ secrets.LINODE_CLUSTER_ID }}"
+          app_image_tag       = "${{ env.TAG }}"
+          EOF
+          echo "terraform.tfvars file created successfully"
+          cat terraform/terraform.tfvars
 
       - name: Terraform Init
         run: make terraform-init
@@ -125,46 +143,3 @@ jobs:
 
       - name: Perform Health Checks
         run: make perform-health-checks
-
-  notify:
-    name: Notify Deployment Status
-    runs-on: ubuntu-latest
-    needs: [deploy-application]
-    if: always()
-    
-    steps:
-      - name: Deployment Success
-        if: needs.deploy-application.result == 'success'
-        run: |
-          echo "✅ Production deployment completed successfully!"
-          echo "🚀 Application is live and healthy"
-
-      - name: Setup Terraform
-        if: needs.deploy-application.result == 'failure'
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: '1.13.3'
-          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
-
-      - name: Terraform Init
-        if: needs.deploy-application.result == 'failure'
-        run: make terraform-init
-
-      - name: Sync Kubeconfig
-        if: needs.deploy-application.result == 'failure'
-        run: make k8s-sync-kubeconfig
-
-      - name: Get API Logs
-        if: needs.deploy-application.result == 'failure'
-        run: kubectl logs -n scottlms deployment/scottlms-api
-
-      - name: Get Frontend Logs
-        if: needs.deploy-application.result == 'failure'
-        run: kubectl logs -n scottlms deployment/scottlms-frontend
-
-      - name: Deployment Failure
-        if: needs.deploy-application.result == 'failure'
-        run: |
-          echo "❌ Production deployment failed!"
-          echo "🔍 Check the logs above for details"
-          exit 1
