@@ -129,12 +129,7 @@ jobs:
         run: make terraform-init
 
       - name: Sync Kubeconfig
-        run: |
-          echo "Syncing kubeconfig..."
-          mkdir ~/.kube
-          make k8s-sync-kubeconfig
-          ls -la ~/.kube
-          echo "Kubeconfig synced successfully"
+        run: make k8s-sync-kubeconfig
 
       - name: Setup Environment
         run: make k8s-set-environment
