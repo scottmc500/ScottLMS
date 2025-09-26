@@ -25,13 +25,6 @@ variable "atlas_project_id" {
   default     = ""
 }
 
-# === APPLICATION CONFIGURATION ===
-
-variable "app_image_tag" {
-  description = "Docker image tag for the application"
-  type        = string
-}
-
 # === MONGODB ACCESS CIDR BLOCKS ===
 
 variable "api_cidr_block" {
