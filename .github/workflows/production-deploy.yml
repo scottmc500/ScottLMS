@@ -59,11 +59,11 @@ jobs:
           terraform_version: '1.13.3'
           cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
 
-      - name: Create terraform.tfvars from Makefile
-        run: make terraform-build-tfvars
-
       - name: Terraform Init
         run: make terraform-init
+
+      - name: Create terraform.tfvars from Makefile
+        run: make terraform-build-tfvars
 
       - name: Terraform Validate
         run: make terraform-validate
