@@ -7,11 +7,14 @@ on:
 
 env:
   TAG: ${{ github.sha }}
+  DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+  DOCKER_HUB_PASSWORD: ${{ secrets.DOCKER_HUB_PASSWORD }}
 
 jobs:
   build-and-push:
     name: Build and Push Docker Images
     runs-on: ubuntu-latest
+    environment: production
     
     steps:
       - name: Checkout Code
@@ -23,8 +26,8 @@ jobs:
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKER_HUB_USERNAME }}
-          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+          username: ${{ env.DOCKER_HUB_USERNAME }}
+          password: ${{ env.DOCKER_HUB_PASSWORD }}
 
       - name: Build Docker Images
         run: make docker-build
@@ -35,10 +38,9 @@ jobs:
       - name: Push Docker Images
         run: make docker-push
 
-  deploy-infrastructure:
-    name: Deploy Infrastructure
+  build-infrastructure:
+    name: Build Infrastructure
     runs-on: ubuntu-latest
-    needs: build-and-push
     environment: production
     
     steps:
@@ -89,33 +91,67 @@ jobs:
             echo "No terraform.tfvars file to clean up"
           fi
 
+  deploy-application:
+    name: Deploy Application
+    runs-on: ubuntu-latest
+    environment: production
+    needs: [build-and-push, build-infrastructure]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.13.3'
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+
+      - name: Terraform Init
+        run: make terraform-init
+
+      - name: Sync Kubeconfig
+        run: make terraform-sync-kubeconfig
+
+      - name: Setup Environment
+        run: make terraform-setup-environment
+
+      - name: Deploy Backend
+        run: make terraform-deploy-backend
+
+      - name: Deploy Frontend
+        run: make terraform-deploy-frontend
+
+      - name: Perform Health Checks
+        run: make perform-health-checks
+
   notify:
     name: Notify Deployment Status
     runs-on: ubuntu-latest
-    needs: [build-and-push, deploy-infrastructure]
+    needs: [deploy-application]
     if: always()
     
     steps:
       - name: Deployment Success
-        if: needs.deploy-infrastructure.result == 'success'
+        if: needs.deploy-application.result == 'success'
         run: |
           echo "✅ Production deployment completed successfully!"
           echo "🚀 Application is live and healthy"
 
       - name: Save Kubeconfig
-        if: needs.deploy-infrastructure.result == 'failure'
+        if: needs.deploy-application.result == 'failure'
         run: make save-kubeconfig
 
       - name: Get API Logs
-        if: needs.deploy-infrastructure.result == 'failure'
+        if: needs.deploy-application.result == 'failure'
         run: kubectl logs -n scottlms deployment/scottlms-api
 
       - name: Get Frontend Logs
-        if: needs.deploy-infrastructure.result == 'failure'
+        if: needs.deploy-application.result == 'failure'
         run: kubectl logs -n scottlms deployment/scottlms-frontend
 
       - name: Deployment Failure
-        if: needs.deploy-infrastructure.result == 'failure'
+        if: needs.deploy-application.result == 'failure'
         run: |
           echo "❌ Production deployment failed!"
           echo "🔍 Check the logs above for details"

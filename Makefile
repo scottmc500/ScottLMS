@@ -10,7 +10,9 @@
 PROJECT_NAME := scottlms
 PYTHON := python3
 PIP := pip3
-TAG ?= latest
+TAG ?= abc123
+DOCKER_HUB_USERNAME ?= user123
+DOCKER_HUB_PASSWORD ?= password123
 
 # Colors for output
 RED := \033[0;31m
@@ -28,7 +30,8 @@ help: ## Display this help message
 ##@ Development
 docker-build: ## Build development environment with Docker
 	@echo "$(GREEN)Building development environment...$(NC)"
-	docker compose build --parallel --no-cache
+	TAG=$(TAG) docker compose build --parallel --no-cache
+	TAG=latest docker compose build --parallel
 	@echo "$(GREEN)Development environment built!$(NC)"
 
 docker-start: ## Start development environment with Docker
@@ -64,7 +67,8 @@ docker-destroy: ## Destroy all development resources (containers, volumes, netwo
 
 docker-push: ## Push Docker images to Docker Hub
 	@echo "$(GREEN)Pushing Docker images to Docker Hub...$(NC)"
-	docker compose push
+	TAG=$(TAG) docker compose push
+	TAG=latest docker compose push
 	@echo "$(GREEN)Docker images pushed to Docker Hub!$(NC)"
 
 docker-test-backend: ## Test backend with Docker
@@ -132,20 +136,84 @@ test-coverage: ## Run tests with coverage
 	@echo "$(GREEN)Running tests with coverage...$(NC)"
 	python -m pytest --cov=backend --cov=frontend --cov-report=html --cov-report=term
 
-##@ Deployment Commands
+##@ Kubernetes Commands
 k8s-sync-kubeconfig: ## Save kubeconfig to ~/.kube/config and set cluster context
 	@echo "$(GREEN)Saving kubeconfig to ~/.kube/config...$(NC)"
-	terraform -chdir=terraform output -raw linode_cluster_kubeconfig > ~/.kube/config
-	kubectl cluster-info
+	@terraform -chdir=terraform output -raw linode_cluster_kubeconfig > ~/.kube/config
+	@kubectl cluster-info
 	@echo "$(GREEN)Kubeconfig saved to ~/.kube/config!$(NC)"
 
-k8s-rollout-restart: ## Roll out deployment
-	@echo "$(GREEN)Rolling out deployment...$(NC)"
-	kubectl rollout restart deployment/scottlms-api -n scottlms
-	kubectl wait --for=condition=available --timeout=300s deployment/scottlms-api -n scottlms
-	kubectl rollout restart deployment/scottlms-frontend -n scottlms
-	kubectl wait --for=condition=available --timeout=300s deployment/scottlms-frontend -n scottlms
-	@echo "$(GREEN)Deployment rolled out!$(NC)"
+k8s-set-infrastructure: ## Set environment variables and deploy infrastructure
+	@echo "$(GREEN)Setting environment variables for Kubernetes infrastructure...$(NC)"
+	@echo "$(GREEN)Deploying environment to Kubernetes...$(NC)"
+	@kubectl apply -f kubernetes/environment.yaml
+	@echo "$(GREEN)Creating application secrets...$(NC)"
+	@kubectl delete secret scottlms-secrets -n scottlms --ignore-not-found
+	$(eval MONGODB_URL := $(shell terraform -chdir=terraform output -raw mongodb_url))
+	@kubectl create secret generic scottlms-secrets -n scottlms --from-literal=MONGODB_URL=$(MONGODB_URL)
+	@echo "$(GREEN)Application secrets created!$(NC)"
+	@echo "$(GREEN)Creating Docker Hub credentials...$(NC)"
+	@kubectl delete secret docker-hub-credentials -n scottlms --ignore-not-found
+	@kubectl create secret docker-registry docker-hub-credentials -n scottlms --docker-username=$(DOCKER_HUB_USERNAME) --docker-password=$(DOCKER_HUB_PASSWORD)
+	@echo "$(GREEN)Docker Hub credentials created!$(NC)"
+	@echo "$(GREEN)Infrastructure deployment complete!$(NC)"
+
+k8s-deploy-frontend: ## Deploy frontend (check, build, or update)
+	@echo "$(GREEN)Checking frontend deployment...$(NC)"
+	@if kubectl get deployment scottlms-frontend -n scottlms >/dev/null 2>&1; then \
+		echo "$(YELLOW)Frontend deployment exists, updating...$(NC)"; \
+		kubectl apply -f kubernetes/presentation.yaml; \
+		echo "$(GREEN)Forcing fresh image pull and pod recreation...$(NC)"; \
+		kubectl rollout restart deployment/scottlms-frontend -n scottlms; \
+		echo "$(GREEN)Waiting for frontend rollout to complete...$(NC)"; \
+		kubectl rollout status deployment/scottlms-frontend -n scottlms --timeout=300s; \
+		echo "$(GREEN)Frontend updated with fresh image!$(NC)"; \
+	else \
+		echo "$(YELLOW)Frontend deployment not found, creating...$(NC)"; \
+		kubectl apply -f kubernetes/presentation.yaml; \
+		echo "$(GREEN)Waiting for frontend deployment to be ready...$(NC)"; \
+		kubectl rollout status deployment/scottlms-frontend -n scottlms --timeout=300s; \
+		echo "$(GREEN)Frontend created!$(NC)"; \
+	fi
+	$(eval FRONTEND_EXTERNAL_IP := $(shell kubectl get service scottlms-frontend-loadbalancer -n scottlms -o jsonpath='{.status.loadBalancer.ingress[0].ip}'))
+	@echo "$(GREEN)Frontend external IP: $(FRONTEND_EXTERNAL_IP)$(NC)"
+	@echo "$(GREEN)Frontend deployment complete!$(NC)"
+	
+k8s-deploy-backend: ## Deploy backend (check, build, or update)
+	@echo "$(GREEN)Checking backend deployment...$(NC)"
+	@if kubectl get deployment scottlms-api -n scottlms >/dev/null 2>&1; then \
+		echo "$(YELLOW)Backend deployment exists, updating...$(NC)"; \
+		kubectl apply -f kubernetes/application.yaml; \
+		echo "$(GREEN)Forcing fresh image pull and pod recreation...$(NC)"; \
+		kubectl rollout restart deployment/scottlms-api -n scottlms; \
+		echo "$(GREEN)Waiting for backend rollout to complete...$(NC)"; \
+		kubectl rollout status deployment/scottlms-api -n scottlms --timeout=300s; \
+		echo "$(GREEN)Backend updated with fresh image!$(NC)"; \
+	else \
+		echo "$(YELLOW)Backend deployment not found, creating...$(NC)"; \
+		kubectl apply -f kubernetes/application.yaml; \
+		echo "$(GREEN)Waiting for backend deployment to be ready...$(NC)"; \
+		kubectl rollout status deployment/scottlms-api -n scottlms --timeout=300s; \
+		echo "$(GREEN)Backend created!$(NC)"; \
+	fi
+	$(eval BACKEND_EXTERNAL_IP := $(shell kubectl get service scottlms-api-loadbalancer -n scottlms -o jsonpath='{.status.loadBalancer.ingress[0].ip}'))
+	@echo "$(GREEN)Backend external IP: $(BACKEND_EXTERNAL_IP):8000$(NC)"
+	@echo "$(GREEN)Backend deployment complete!$(NC)"
+
+full-deployment: docker-build docker-push k8s-sync-kubeconfig k8s-set-infrastructure k8s-deploy-backend k8s-deploy-frontend ## Full deployment
+	@echo "$(GREEN)Full deployment complete!$(NC)"
+
+##@ Health Checks
+perform-health-checks: ## Perform health check on backend and frontend
+	@echo "$(GREEN)Performing health checks...$(NC)"
+	$(eval BACKEND_EXTERNAL_IP := $(shell kubectl get service scottlms-api-loadbalancer -n scottlms -o jsonpath='{.status.loadBalancer.ingress[0].ip}'))
+	$(eval FRONTEND_EXTERNAL_IP := $(shell kubectl get service scottlms-frontend-loadbalancer -n scottlms -o jsonpath='{.status.loadBalancer.ingress[0].ip}'))
+	@echo "$(GREEN)Checking backend availability...$(NC)"
+	@curl -f http://$(BACKEND_EXTERNAL_IP):8000/health || exit 1
+	@echo ""
+	@echo "$(GREEN)Checking frontend availability...$(NC)"
+	@curl -I -f http://$(FRONTEND_EXTERNAL_IP) || exit 1
+	@echo "$(GREEN)Health checks complete!$(NC)"
 
 ##@ Code Quality
 format: ## Format code with black

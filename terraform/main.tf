@@ -26,12 +26,6 @@ terraform {
       version = "~> 2.0"
     }
 
-    # Kubernetes provider for managing K8s resources
-    kubernetes = {
-      source  = "hashicorp/kubernetes"
-      version = "~> 2.20"
-    }
-
     random = {
       source  = "hashicorp/random"
       version = "~> 3.0"
@@ -41,29 +35,9 @@ terraform {
 
 # Local values for computed resources that are used in multiple places
 locals {
-  # === KUBECONFIG PARSING ===
-  kubeconfig       = yamldecode(base64decode(linode_lke_cluster.scottlms_cluster.kubeconfig))
-  kube_server      = local.kubeconfig.clusters[0].cluster.server
-  kube_token       = local.kubeconfig.users[0].user.token
-  kube_certificate = local.kubeconfig.clusters[0].cluster.certificate-authority-data
-
   # === MONGODB CONFIGURATION ===
   mongodb_hostname = replace(mongodbatlas_cluster.main.connection_strings[0].standard_srv, "mongodb+srv://", "")
   mongodb_url      = "mongodb+srv://${random_string.mongodb_username.result}:${random_password.mongodb_user_password.result}@${local.mongodb_hostname}/scottlms"
-
-  # Debug: Let's see what we're actually generating
-  mongodb_debug = {
-    original_connection_string = mongodbatlas_cluster.main.connection_strings[0].standard_srv
-    extracted_hostname         = local.mongodb_hostname
-    final_url                  = local.mongodb_url
-  }
-}
-
-# Configure Kubernetes Provider
-provider "kubernetes" {
-  host                   = local.kube_server
-  token                  = local.kube_token
-  cluster_ca_certificate = base64decode(local.kube_certificate)
 }
 
 # Configure MongoDB Atlas Provider

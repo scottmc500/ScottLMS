@@ -1,0 +1,72 @@
+# ScottLMS Presentation Layer
+# Frontend Services (UI + LoadBalancer)
+# This file contains the frontend UI and its networking
+
+---
+# Frontend Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scottlms-frontend
+  namespace: scottlms
+  labels:
+    app: scottlms-frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: scottlms-frontend
+  template:
+    metadata:
+      labels:
+        app: scottlms-frontend
+    spec:
+      imagePullSecrets:
+        - name: docker-hub-credentials
+      containers:
+        - name: scottlms-frontend
+          image: smchenry2014/scottlms-ui:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8501
+          envFrom:
+            - configMapRef:
+                name: scottlms-config
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8501
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8501
+            initialDelaySeconds: 5
+            periodSeconds: 5
+
+---
+# Frontend Service - External LoadBalancer
+apiVersion: v1
+kind: Service
+metadata:
+  name: scottlms-frontend-loadbalancer
+  namespace: scottlms
+  labels:
+    app: scottlms-frontend
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 80
+      targetPort: 8501
+      protocol: TCP
+      name: http
+  selector:
+    app: scottlms-frontend
