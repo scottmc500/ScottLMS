@@ -20,6 +20,9 @@ python-dotenv==1.0.0
 # Password Hashing
 bcrypt==4.1.2
 
+# Rate Limiting
+slowapi==0.1.9
+
 # Testing Framework
 pytest==7.4.0
 pytest-cov==4.1.0

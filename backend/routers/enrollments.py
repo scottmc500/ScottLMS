@@ -3,7 +3,7 @@ Enrollment API routes
 """
 
 from typing import List
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Request
 from beanie import PydanticObjectId
 
 from entities.enrollments import (
@@ -15,6 +15,7 @@ from entities.enrollments import (
 from entities.users import User
 from entities.courses import Course
 from logs import get_logger
+from limiter import limiter, RateLimit
 
 logger = get_logger(__name__)
 router = APIRouter()
@@ -23,7 +24,8 @@ router = APIRouter()
 @router.post(
     "/", response_model=EnrollmentResponse, status_code=status.HTTP_201_CREATED
 )
-async def create_enrollment(enrollment_data: EnrollmentCreate):
+@limiter.limit(RateLimit.POST.value)
+async def create_enrollment(request: Request, enrollment_data: EnrollmentCreate):
     """Create a new enrollment"""
     try:
         # Verify user and course exist
@@ -77,7 +79,8 @@ async def create_enrollment(enrollment_data: EnrollmentCreate):
 
 
 @router.get("/", response_model=List[EnrollmentResponse])
-async def get_enrollments():
+@limiter.limit(RateLimit.GET.value)
+async def get_enrollments(request: Request):
     """Get all enrollments"""
     try:
         enrollments = await Enrollment.find_all().to_list()
@@ -101,7 +104,8 @@ async def get_enrollments():
 
 
 @router.get("/{enrollment_id}", response_model=EnrollmentResponse)
-async def get_enrollment(enrollment_id: PydanticObjectId):
+@limiter.limit(RateLimit.GET.value)
+async def get_enrollment(request: Request, enrollment_id: PydanticObjectId):
     """Get a specific enrollment by ID"""
     try:
         enrollment = await Enrollment.get(enrollment_id)
@@ -125,8 +129,9 @@ async def get_enrollment(enrollment_id: PydanticObjectId):
 
 
 @router.put("/{enrollment_id}", response_model=EnrollmentResponse)
+@limiter.limit(RateLimit.PUT.value)
 async def update_enrollment(
-    enrollment_id: PydanticObjectId, enrollment_data: EnrollmentUpdate
+    request: Request, enrollment_id: PydanticObjectId, enrollment_data: EnrollmentUpdate
 ):
     """Update an enrollment"""
     try:
@@ -162,7 +167,8 @@ async def update_enrollment(
 
 
 @router.delete("/{enrollment_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_enrollment(enrollment_id: PydanticObjectId):
+@limiter.limit(RateLimit.DELETE.value)
+async def delete_enrollment(request: Request, enrollment_id: PydanticObjectId):
     """Delete an enrollment"""
     try:
         enrollment = await Enrollment.get(enrollment_id)
@@ -191,7 +197,8 @@ async def delete_enrollment(enrollment_id: PydanticObjectId):
 
 
 @router.get("/user/{user_id}", response_model=List[EnrollmentResponse])
-async def get_user_enrollments(user_id: PydanticObjectId):
+@limiter.limit(RateLimit.GET.value)
+async def get_user_enrollments(request: Request, user_id: PydanticObjectId):
     """Get all enrollments for a specific user"""
     try:
         enrollments = await Enrollment.find(Enrollment.user_id == user_id).to_list()
@@ -212,7 +219,8 @@ async def get_user_enrollments(user_id: PydanticObjectId):
 
 
 @router.get("/course/{course_id}", response_model=List[EnrollmentResponse])
-async def get_course_enrollments(course_id: PydanticObjectId):
+@limiter.limit(RateLimit.GET.value)
+async def get_course_enrollments(request: Request, course_id: PydanticObjectId):
     """Get all enrollments for a specific course"""
     try:
         enrollments = await Enrollment.find(Enrollment.course_id == course_id).to_list()

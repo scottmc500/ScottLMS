@@ -4,12 +4,13 @@ Main FastAPI application entry point
 """
 
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from database import init_db
 from logs import setup_logging
 from routers import users, courses, enrollments
+from limiter import limiter, setup_rate_limiting, RateLimit
 
 
 @asynccontextmanager
@@ -29,6 +30,9 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Setup rate limiting
+setup_rate_limiting(app)
+
 # Setup logging
 setup_logging()
 
@@ -43,7 +47,8 @@ app.add_middleware(
 
 
 @app.get("/")
-async def root():
+@limiter.limit(RateLimit.GET.value)
+async def root(request: Request):
     """Root endpoint"""
     return {"message": "Welcome to ScottLMS", "version": "1.0.0"}
 

@@ -3,12 +3,13 @@ User API routes
 """
 
 from typing import List
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Request
 from beanie import PydanticObjectId
 import bcrypt
 
 from entities.users import User, UserCreate, UserUpdate, UserResponse
 from logs import get_logger
+from limiter import limiter, RateLimit
 
 logger = get_logger(__name__)
 router = APIRouter()
@@ -34,7 +35,8 @@ def hash_password(password: str) -> str:
 
 
 @router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-async def create_user(user_data: UserCreate):
+@limiter.limit(RateLimit.POST.value)
+async def create_user(request: Request, user_data: UserCreate):
     """Create a new user"""
     try:
         # Check if user already exists
@@ -69,7 +71,8 @@ async def create_user(user_data: UserCreate):
 
 
 @router.get("/", response_model=List[UserResponse])
-async def get_users():
+@limiter.limit(RateLimit.GET.value)
+async def get_users(request: Request):
     """Get all users"""
     try:
         users = await User.find_all().to_list()
@@ -90,7 +93,8 @@ async def get_users():
 
 
 @router.get("/{user_id}", response_model=UserResponse)
-async def get_user(user_id: PydanticObjectId):
+@limiter.limit(RateLimit.GET.value)
+async def get_user(request: Request, user_id: PydanticObjectId):
     """Get a specific user by ID"""
     try:
         user = await User.get(user_id)
@@ -114,7 +118,8 @@ async def get_user(user_id: PydanticObjectId):
 
 
 @router.put("/{user_id}", response_model=UserResponse)
-async def update_user(user_id: PydanticObjectId, user_data: UserUpdate):
+@limiter.limit(RateLimit.PUT.value)
+async def update_user(request: Request, user_id: PydanticObjectId, user_data: UserUpdate):
     """Update a user"""
     try:
         user = await User.get(user_id)
@@ -147,7 +152,8 @@ async def update_user(user_id: PydanticObjectId, user_data: UserUpdate):
 
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_user(user_id: PydanticObjectId):
+@limiter.limit(RateLimit.DELETE.value)
+async def delete_user(request: Request, user_id: PydanticObjectId):
     """Delete a user"""
     try:
         user = await User.get(user_id)
