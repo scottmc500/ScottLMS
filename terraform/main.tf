@@ -26,6 +26,11 @@ terraform {
       version = "~> 2.0"
     }
 
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = "~> 2.0"
+    }
+
     random = {
       source  = "hashicorp/random"
       version = "~> 3.0"
@@ -35,6 +40,13 @@ terraform {
 
 # Local values for computed resources that are used in multiple places
 locals {
+  # === KUBERNETES CONFIGURATION ===
+  kubernetes_kubeconfig = yamldecode(base64decode(linode_lke_cluster.scottlms_cluster.kubeconfig))
+  kubernetes_token      = local.kubernetes_kubeconfig.users[0].user.token
+  kubernetes_host       = local.kubernetes_kubeconfig.clusters[0].cluster.server
+  kubernetes_ca_cert    = local.kubernetes_kubeconfig.clusters[0].cluster.certificate-authority-data
+  kubernetes_addresses   = flatten([for node in data.kubernetes_nodes.scottlms_nodes.nodes : [for status in node.status: status.addresses]])
+  kubernetes_ipv4_addresses   = [for address in local.kubernetes_addresses : address.address if address.type == "ExternalIP" && !can(regex("::", address.address))]
   # === MONGODB CONFIGURATION ===
   mongodb_hostname = replace(mongodbatlas_cluster.main.connection_strings[0].standard_srv, "mongodb+srv://", "")
   mongodb_url      = "mongodb+srv://${random_string.mongodb_username.result}:${random_password.mongodb_user_password.result}@${local.mongodb_hostname}/scottlms"
@@ -49,6 +61,17 @@ provider "mongodbatlas" {
 # Configure Linode Provider
 provider "linode" {
   token = var.linode_token
+}
+
+# Configure Kubernetes Provider
+provider "kubernetes" {
+  token       = local.kubernetes_token
+  host        = local.kubernetes_host
+  cluster_ca_certificate = base64decode(local.kubernetes_ca_cert)
+}
+
+data "kubernetes_nodes" "scottlms_nodes" {
+  depends_on = [linode_lke_cluster.scottlms_cluster]
 }
 
 # Generate random password for MongoDB Atlas user
@@ -105,9 +128,12 @@ resource "mongodbatlas_database_user" "scottlms_user" {
   }
 }
 
-# IP Access List for MongoDB Atlas - Restricted to LoadBalancer CIDR blocks
-resource "mongodbatlas_project_ip_access_list" "api_loadbalancer" {
-  project_id = var.atlas_project_id
-  cidr_block = var.api_cidr_block
-  comment    = "API LoadBalancer CIDR: ${var.api_cidr_block}"
+# IP Access List for MongoDB Atlas - Flexible cluster pod network
+# This uses a broader CIDR block to accommodate current and future cluster nodes
+resource "mongodbatlas_project_ip_access_list" "cluster_pods" {
+  for_each = toset(local.kubernetes_ipv4_addresses)
+  project_id = mongodbatlas_cluster.main.project_id
+  ip_address = each.value
+  comment    = "Kubernetes cluster pod network (flexible for future growth): ${each.value}"
+  depends_on = [mongodbatlas_cluster.main]
 }

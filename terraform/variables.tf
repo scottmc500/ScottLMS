@@ -20,17 +20,8 @@ variable "atlas_org_id" {
 }
 
 variable "atlas_project_id" {
-  description = "MongoDB Atlas project ID (optional - leave empty to create new)"
+  description = "MongoDB Atlas project ID"
   type        = string
-  default     = ""
-}
-
-# === MONGODB ACCESS CIDR BLOCKS ===
-
-variable "api_cidr_block" {
-  description = "CIDR block for API LoadBalancer MongoDB access"
-  type        = string
-  default     = "0.0.0.0/0"
 }
 
 # === LINODE IMPORT CONFIGURATION ===

@@ -16,3 +16,8 @@ output "linode_cluster_kubeconfig" {
   value       = base64decode(linode_lke_cluster.scottlms_cluster.kubeconfig)
   sensitive   = true
 }
+
+output "kubernetes_node_ips" {
+  description = "Kubernetes nodes"
+  value       = local.kubernetes_ipv4_addresses
+}

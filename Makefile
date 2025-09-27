@@ -126,15 +126,6 @@ terraform-destroy: ## Destroy Terraform
 	@echo "$(GREEN)Terraform destroyed!$(NC)"
 
 terraform-build-tfvars: k8s-sync-kubeconfig ## Build Terraform variables
-	@echo "$(GREEN)Building Terraform variables...$(NC)"
-	$(eval API_CIDR := "0.0.0.0/0")
-	@if kubectl get service scottlms-api-loadbalancer -n scottlms >/dev/null 2>&1; then \
-		echo "$(YELLOW)API LoadBalancer exists, getting CIDR block...$(NC)"; \
-		$(eval API_CIDR := $(shell kubectl get service scottlms-api-loadbalancer -n scottlms -o jsonpath='{.status.loadBalancer.ingress[0].ip}')/32) \
-	else \
-		echo "$(YELLOW)API LoadBalancer does not exist, using 0.0.0.0/0 for open access$(NC)"; \
-	fi
-	@echo "$(GREEN)API CIDR block: $(API_CIDR)$(NC)"
 	@echo "$(GREEN)Creating terraform.tfvars file from Makefile...$(NC)"
 	@echo "# Generated from Makefile for Production Deployment" > terraform/terraform.tfvars
 	@echo "atlas_public_key    = \"$(MONGODB_ATLAS_PUBLIC_KEY)\"" >> terraform/terraform.tfvars
@@ -143,7 +134,6 @@ terraform-build-tfvars: k8s-sync-kubeconfig ## Build Terraform variables
 	@echo "atlas_project_id    = \"$(MONGODB_ATLAS_PROJECT_ID)\"" >> terraform/terraform.tfvars
 	@echo "linode_token        = \"$(LINODE_TOKEN)\"" >> terraform/terraform.tfvars
 	@echo "linode_cluster_id   = \"$(LINODE_CLUSTER_ID)\"" >> terraform/terraform.tfvars
-	@echo "api_cidr_block      = \"$(API_CIDR)\"" >> terraform/terraform.tfvars
 	@cat terraform/terraform.tfvars
 	@echo "$(GREEN)Terraform variables created!$(NC)"
 
@@ -178,24 +168,23 @@ k8s-sync-kubeconfig: ## Save kubeconfig to ~/.kube/config and set cluster contex
 	@kubectl cluster-info
 	@echo "$(GREEN)Kubeconfig saved to ~/.kube/config!$(NC)"
 
-k8s-get-cidr-blocks: ## Get LoadBalancer CIDR blocks
-	@if kubectl get service scottlms-api-loadbalancer -n scottlms >/dev/null 2>&1; then \
-		echo "$(YELLOW)API LoadBalancer exists, getting CIDR block...$(NC)"; \
-		$(eval API_CIDR := $(shell kubectl get service scottlms-api-loadbalancer -n scottlms -o jsonpath='{.status.loadBalancer.ingress[0].ip}')/32) \
+k8s-get-cidr-blocks: ## Get cluster node CIDR blocks for MongoDB access
+	@echo "$(GREEN)Getting cluster node IPs for MongoDB access...$(NC)"
+	@echo "$(YELLOW)Getting Linode cluster node IPs...$(NC)"
+	@ALL_CIDRS=$$(kubectl get nodes -o jsonpath='{.items[*].spec.podCIDR}' 2>/dev/null || echo ""); \
+	if [ -n "$$ALL_CIDRS" ]; then \
+		echo "$(GREEN)✓ Found cluster pod CIDRs: $$ALL_CIDRS$(NC)"; \
+		FIRST_CIDR=$$(echo "$$ALL_CIDRS" | cut -d' ' -f1); \
+		BASE_NETWORK=$$(echo "$$FIRST_CIDR" | cut -d'/' -f1 | cut -d'.' -f1-3); \
+		CLUSTER_CIDR="$$BASE_NETWORK.0/20"; \
+		echo "$(GREEN)Using flexible CIDR for future growth: $$CLUSTER_CIDR$(NC)"; \
+		echo "$(YELLOW)This covers current CIDRs: $$ALL_CIDRS$(NC)"; \
 	else \
-		echo "$(YELLOW)API LoadBalancer does not exist, using 0.0.0.0/0 for open access$(NC)"; \
-		$(eval API_CIDR := "0.0.0.0/0") \
+		echo "$(YELLOW)⚠ No cluster CIDRs found, using 0.0.0.0/0 for open access$(NC)"; \
+		CLUSTER_CIDR="0.0.0.0/0"; \
 	fi
-	@if kubectl get service scottlms-frontend-loadbalancer -n scottlms >/dev/null 2>&1; then \
-		echo "$(YELLOW)Frontend LoadBalancer exists, getting CIDR block...$(NC)"; \
-		$(eval FRONTEND_CIDR := $(shell kubectl get service scottlms-frontend-loadbalancer -n scottlms -o jsonpath='{.status.loadBalancer.ingress[0].ip}')/32) \
-	else \
-		echo "$(YELLOW)Frontend LoadBalancer does not exist, using 0.0.0.0/0 for open access$(NC)"; \
-		$(eval FRONTEND_CIDR := "0.0.0.0/0") \
-	fi
-	@echo "$(GREEN)✓ Frontend LoadBalancer CIDR Block: $(FRONTEND_CIDR)$(NC)"
-	@echo "$(GREEN)✓ API LoadBalancer CIDR Block: $(API_CIDR)$(NC)"
-	@echo "$(GREEN)LoadBalancer CIDR blocks retrieved!$(NC)"
+	@echo "$(GREEN)✓ Cluster CIDR Block: $$CLUSTER_CIDR$(NC)"
+	@echo "$(GREEN)Cluster node CIDR blocks retrieved!$(NC)"
 
 k8s-set-environment: ## Set environment variables and deploy infrastructure
 	@echo "$(GREEN)Setting environment variables for Kubernetes infrastructure...$(NC)"
