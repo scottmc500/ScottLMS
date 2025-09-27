@@ -1,0 +1,17 @@
+{
+  "name": "scottlms-mongo-init",
+  "version": "1.0.0",
+  "description": "MongoDB initialization script for ScottLMS with bcrypt password hashing",
+  "main": "mongo-init-node.js",
+  "scripts": {
+    "start": "node mongo-init-node.js",
+    "dev": "node mongo-init-node.js"
+  },
+  "dependencies": {
+    "mongodb": "^6.0.0",
+    "bcrypt": "^5.1.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

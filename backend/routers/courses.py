@@ -29,13 +29,10 @@ async def create_course(course_data: CourseCreate):
         await course.save()
 
         logger.info(f"Created course: {course.title}")
+        # Convert _id to id for response
         course_dict = course.model_dump()
-        # Handle both _id and id cases
         if "_id" in course_dict:
             course_dict["id"] = course_dict.pop("_id")
-        elif "id" not in course_dict:
-            # If neither _id nor id exists, use the course.id property
-            course_dict["id"] = course.id
         return CourseResponse(**course_dict)
 
     except HTTPException:
@@ -81,13 +78,10 @@ async def get_course(course_id: PydanticObjectId):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Course not found"
             )
+        # Convert _id to id for response
         course_dict = course.model_dump()
-        # Handle both _id and id cases
         if "_id" in course_dict:
             course_dict["id"] = course_dict.pop("_id")
-        elif "id" not in course_dict:
-            # If neither _id nor id exists, use the course.id property
-            course_dict["id"] = course.id
         return CourseResponse(**course_dict)
     except HTTPException:
         raise
@@ -116,13 +110,10 @@ async def update_course(course_id: PydanticObjectId, course_data: CourseUpdate):
 
         await course.save()
         logger.info(f"Updated course: {course.title}")
+        # Convert _id to id for response
         course_dict = course.model_dump()
-        # Handle both _id and id cases
         if "_id" in course_dict:
             course_dict["id"] = course_dict.pop("_id")
-        elif "id" not in course_dict:
-            # If neither _id nor id exists, use the course.id property
-            course_dict["id"] = course.id
         return CourseResponse(**course_dict)
 
     except HTTPException:
@@ -165,13 +156,10 @@ async def get_courses_by_instructor(instructor_id: PydanticObjectId):
         courses = await Course.find(Course.instructor_id == instructor_id).to_list()
         result = []
         for course in courses:
+            # Convert _id to id for response
             course_dict = course.model_dump()
-            # Handle both _id and id cases
             if "_id" in course_dict:
                 course_dict["id"] = course_dict.pop("_id")
-            elif "id" not in course_dict:
-                # If neither _id nor id exists, use the course.id property
-                course_dict["id"] = course.id
             result.append(CourseResponse(**course_dict))
         return result
     except Exception as e:

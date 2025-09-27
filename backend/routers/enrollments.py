@@ -60,13 +60,10 @@ async def create_enrollment(enrollment_data: EnrollmentCreate):
         logger.info(
             f"Created enrollment: User {enrollment.user_id} in Course {enrollment.course_id}"
         )
+        # Convert _id to id for response
         enrollment_dict = enrollment.model_dump()
-        # Handle both _id and id cases
         if "_id" in enrollment_dict:
             enrollment_dict["id"] = enrollment_dict.pop("_id")
-        elif "id" not in enrollment_dict:
-            # If neither _id nor id exists, use the enrollment.id property
-            enrollment_dict["id"] = enrollment.id
         return EnrollmentResponse(**enrollment_dict)
 
     except HTTPException:
@@ -112,13 +109,10 @@ async def get_enrollment(enrollment_id: PydanticObjectId):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Enrollment not found"
             )
+        # Convert _id to id for response
         enrollment_dict = enrollment.model_dump()
-        # Handle both _id and id cases
         if "_id" in enrollment_dict:
             enrollment_dict["id"] = enrollment_dict.pop("_id")
-        elif "id" not in enrollment_dict:
-            # If neither _id nor id exists, use the enrollment.id property
-            enrollment_dict["id"] = enrollment.id
         return EnrollmentResponse(**enrollment_dict)
     except HTTPException:
         raise
@@ -151,13 +145,10 @@ async def update_enrollment(
         await enrollment.save()
 
         logger.info(f"Updated enrollment: {enrollment_id}")
+        # Convert _id to id for response
         enrollment_dict = enrollment.model_dump()
-        # Handle both _id and id cases
         if "_id" in enrollment_dict:
             enrollment_dict["id"] = enrollment_dict.pop("_id")
-        elif "id" not in enrollment_dict:
-            # If neither _id nor id exists, use the enrollment.id property
-            enrollment_dict["id"] = enrollment.id
         return EnrollmentResponse(**enrollment_dict)
 
     except HTTPException:
@@ -206,13 +197,10 @@ async def get_user_enrollments(user_id: PydanticObjectId):
         enrollments = await Enrollment.find(Enrollment.user_id == user_id).to_list()
         result = []
         for enrollment in enrollments:
+            # Convert _id to id for response
             enrollment_dict = enrollment.model_dump()
-            # Handle both _id and id cases
             if "_id" in enrollment_dict:
                 enrollment_dict["id"] = enrollment_dict.pop("_id")
-            elif "id" not in enrollment_dict:
-                # If neither _id nor id exists, use the enrollment.id property
-                enrollment_dict["id"] = enrollment.id
             result.append(EnrollmentResponse(**enrollment_dict))
         return result
     except Exception as e:
@@ -230,13 +218,10 @@ async def get_course_enrollments(course_id: PydanticObjectId):
         enrollments = await Enrollment.find(Enrollment.course_id == course_id).to_list()
         result = []
         for enrollment in enrollments:
+            # Convert _id to id for response
             enrollment_dict = enrollment.model_dump()
-            # Handle both _id and id cases
             if "_id" in enrollment_dict:
                 enrollment_dict["id"] = enrollment_dict.pop("_id")
-            elif "id" not in enrollment_dict:
-                # If neither _id nor id exists, use the enrollment.id property
-                enrollment_dict["id"] = enrollment.id
             result.append(EnrollmentResponse(**enrollment_dict))
         return result
     except Exception as e:

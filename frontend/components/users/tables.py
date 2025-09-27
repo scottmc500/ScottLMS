@@ -26,11 +26,16 @@ def display_user_details(user):
         st.markdown(f"**User ID:** {user.get('id', '')}")
 
     with col2:
-        if st.button("✏️ Edit User", key=f"edit_user_{user.get('id', '')}"):
+        # Create unique keys using email as fallback if ID is missing
+        user_id = user.get('id', '') or user.get('_id', '') or user.get('email', 'unknown')
+        edit_key = f"edit_user_{user_id}_{hash(str(user))}"
+        delete_key = f"delete_user_{user_id}_{hash(str(user))}"
+        
+        if st.button("✏️ Edit User", key=edit_key):
             st.session_state.selected_user_for_edit = user
             st.rerun()
 
-        if st.button("🗑️ Delete User", key=f"delete_user_{user.get('id', '')}"):
+        if st.button("🗑️ Delete User", key=delete_key):
             st.session_state.delete_user = user
             st.rerun()
 

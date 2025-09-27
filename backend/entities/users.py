@@ -59,8 +59,6 @@ class User(UserBase, Document):
 class UserResponse(UserBase):
     """User response model (without sensitive data)"""
 
-    id: PydanticObjectId = Field(alias="_id")
+    id: PydanticObjectId
     created_at: datetime
     updated_at: datetime
-
-    model_config = ConfigDict(populate_by_name=True)

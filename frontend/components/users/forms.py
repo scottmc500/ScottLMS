@@ -99,6 +99,10 @@ def edit_user_form(user):
     st.markdown("---")
     st.subheader("✏️ Edit User")
 
+    # Create unique user identifier for keys
+    user_id = user.get('id', '') or user.get('_id', '') or user.get('email', 'unknown')
+    key_suffix = f"{user_id}_{hash(str(user))}"
+
     # Personal Information Section
     st.markdown("**👤 Personal Information**")
     col1, col2 = st.columns(2)
@@ -106,22 +110,22 @@ def edit_user_form(user):
         first_name = st.text_input(
             "First Name",
             value=user.get("first_name", ""),
-            key=f"edit_user_first_name_{user.get('id')}",
+            key=f"edit_user_first_name_{key_suffix}",
         )
     with col2:
         last_name = st.text_input(
             "Last Name",
             value=user.get("last_name", ""),
-            key=f"edit_user_last_name_{user.get('id')}",
+            key=f"edit_user_last_name_{key_suffix}",
         )
 
     email = st.text_input(
-        "Email", value=user.get("email", ""), key=f"edit_user_email_{user.get('id')}"
+        "Email", value=user.get("email", ""), key=f"edit_user_email_{key_suffix}"
     )
     username = st.text_input(
         "Username",
         value=user.get("username", ""),
-        key=f"edit_user_username_{user.get('id')}",
+        key=f"edit_user_username_{key_suffix}",
     )
 
     # Account Settings Section
@@ -130,7 +134,7 @@ def edit_user_form(user):
         "Role",
         ["student", "instructor", "admin"],
         index=["student", "instructor", "admin"].index(user.get("role", "student")),
-        key=f"edit_user_role_{user.get('id')}",
+        key=f"edit_user_role_{key_suffix}",
     )
 
     col1, col2 = st.columns(2)
@@ -139,24 +143,24 @@ def edit_user_form(user):
             "New Password (leave blank to keep current)",
             type="password",
             placeholder="Enter strong password",
-            key=f"edit_user_password_{user.get('id')}",
+            key=f"edit_user_password_{key_suffix}",
         )
     with col2:
         password_confirm = st.text_input(
             "Confirm New Password",
             type="password",
             placeholder="Re-enter password",
-            key=f"edit_user_password_confirm_{user.get('id')}",
+            key=f"edit_user_password_confirm_{key_suffix}",
         )
 
     # Action buttons outside form
     col1, col2 = st.columns(2)
     with col1:
         submitted = st.button(
-            "Update User", type="primary", key=f"update_user_btn_{user.get('id')}"
+            "Update User", type="primary", key=f"update_user_btn_{key_suffix}"
         )
     with col2:
-        if st.button("Cancel", key=f"cancel_user_btn_{user.get('id')}"):
+        if st.button("Cancel", key=f"cancel_user_btn_{key_suffix}"):
             del st.session_state.selected_user_for_edit
             st.rerun()
 

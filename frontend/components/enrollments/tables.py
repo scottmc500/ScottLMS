@@ -20,15 +20,16 @@ def display_enrollment_details(enrollment):
         st.markdown(f"**Enrollment ID:** {enrollment.get('id', '')}")
 
     with col2:
-        if st.button(
-            "✏️ Edit Enrollment", key=f"edit_enrollment_{enrollment.get('id', '')}"
-        ):
+        # Create unique keys using user_id and course_id as fallback if ID is missing
+        enrollment_id = enrollment.get('id', '') or enrollment.get('_id', '') or f"{enrollment.get('user_id', '')}_{enrollment.get('course_id', '')}"
+        edit_key = f"edit_enrollment_{enrollment_id}_{hash(str(enrollment))}"
+        delete_key = f"delete_enrollment_{enrollment_id}_{hash(str(enrollment))}"
+        
+        if st.button("✏️ Edit Enrollment", key=edit_key):
             st.session_state.selected_enrollment_for_edit = enrollment
             st.rerun()
 
-        if st.button(
-            "🗑️ Delete Enrollment", key=f"delete_enrollment_{enrollment.get('id', '')}"
-        ):
+        if st.button("🗑️ Delete Enrollment", key=delete_key):
             st.session_state.delete_enrollment = enrollment
             st.rerun()
 

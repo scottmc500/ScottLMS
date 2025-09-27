@@ -70,10 +70,8 @@ class Course(CourseBase, Document):
 class CourseResponse(CourseBase):
     """Course response model"""
 
-    id: PydanticObjectId = Field(alias="_id")
+    id: PydanticObjectId
     instructor_id: PydanticObjectId
     created_at: datetime
     updated_at: datetime
     enrollment_count: int
-
-    model_config = ConfigDict(populate_by_name=True)

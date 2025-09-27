@@ -24,11 +24,16 @@ def display_course_details(course):
         st.markdown(f"**Instructor ID:** {course.get('instructor_id', '')}")
 
     with col2:
-        if st.button("✏️ Edit Course", key=f"edit_course_{course.get('id', '')}"):
+        # Create unique keys using title as fallback if ID is missing
+        course_id = course.get('id', '') or course.get('_id', '') or course.get('title', 'unknown')
+        edit_key = f"edit_course_{course_id}_{hash(str(course))}"
+        delete_key = f"delete_course_{course_id}_{hash(str(course))}"
+        
+        if st.button("✏️ Edit Course", key=edit_key):
             st.session_state.selected_course_for_edit = course
             st.rerun()
 
-        if st.button("🗑️ Delete Course", key=f"delete_course_{course.get('id', '')}"):
+        if st.button("🗑️ Delete Course", key=delete_key):
             st.session_state.delete_course = course
             st.rerun()
 

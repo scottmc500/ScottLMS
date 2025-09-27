@@ -5,7 +5,7 @@ User API routes
 from typing import List
 from fastapi import APIRouter, HTTPException, status
 from beanie import PydanticObjectId
-import hashlib
+import bcrypt
 
 from entities.users import User, UserCreate, UserUpdate, UserResponse
 from logs import get_logger
@@ -15,8 +15,22 @@ router = APIRouter()
 
 
 def hash_password(password: str) -> str:
-    """Simple password hashing"""
-    return hashlib.sha256(password.encode()).hexdigest()
+    """
+    Secure password hashing with bcrypt
+    
+    Uses 12 rounds for strong security while maintaining reasonable performance.
+    This matches the hashing used in the MongoDB initialization script.
+    
+    Args:
+        password: Plain text password to hash
+        
+    Returns:
+        bcrypt hash string that can be safely stored in the database
+    """
+    # Generate salt and hash password with 12 rounds (same as Node.js script)
+    salt = bcrypt.gensalt(rounds=12)
+    hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
+    return hashed.decode('utf-8')
 
 
 @router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
@@ -40,13 +54,10 @@ async def create_user(user_data: UserCreate):
         await user.save()
 
         logger.info(f"Created user: {user.email}")
+        # Convert _id to id for response
         user_dict = user.model_dump()
-        # Handle both _id and id cases
         if "_id" in user_dict:
             user_dict["id"] = user_dict.pop("_id")
-        elif "id" not in user_dict:
-            # If neither _id nor id exists, use the user.id property
-            user_dict["id"] = user.id
         return UserResponse(**user_dict)
 
     except Exception as e:
@@ -64,14 +75,10 @@ async def get_users():
         users = await User.find_all().to_list()
         result = []
         for user in users:
+            # Convert _id to id for response
             user_dict = user.model_dump()
-            logger.debug(f"User dict keys: {list(user_dict.keys())}")
-            # Handle both _id and id cases
             if "_id" in user_dict:
                 user_dict["id"] = user_dict.pop("_id")
-            elif "id" not in user_dict:
-                # If neither _id nor id exists, use the user.id property
-                user_dict["id"] = user.id
             result.append(UserResponse(**user_dict))
         return result
     except Exception as e:
@@ -91,13 +98,10 @@ async def get_user(user_id: PydanticObjectId):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
             )
+        # Convert _id to id for response
         user_dict = user.model_dump()
-        # Handle both _id and id cases
         if "_id" in user_dict:
             user_dict["id"] = user_dict.pop("_id")
-        elif "id" not in user_dict:
-            # If neither _id nor id exists, use the user.id property
-            user_dict["id"] = user.id
         return UserResponse(**user_dict)
     except HTTPException:
         raise
@@ -126,13 +130,10 @@ async def update_user(user_id: PydanticObjectId, user_data: UserUpdate):
 
         await user.save()
         logger.info(f"Updated user: {user.email}")
+        # Convert _id to id for response
         user_dict = user.model_dump()
-        # Handle both _id and id cases
         if "_id" in user_dict:
             user_dict["id"] = user_dict.pop("_id")
-        elif "id" not in user_dict:
-            # If neither _id nor id exists, use the user.id property
-            user_dict["id"] = user.id
         return UserResponse(**user_dict)
 
     except HTTPException:

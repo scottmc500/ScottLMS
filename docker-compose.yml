@@ -15,6 +15,8 @@ services:
     depends_on:
       mongodb:
         condition: service_healthy
+      mongo-init:
+        condition: service_completed_successfully
     volumes:
       - ./backend:/app
     healthcheck:
@@ -37,13 +39,33 @@ services:
       - MONGO_INITDB_DATABASE=scottlms
     volumes:
       - mongodb_data:/data/db
-      - ./scripts/mongo-init-local.js:/docker-entrypoint-initdb.d/mongo-init-local.js:ro
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 30s
+    networks:
+      - scottlms-network
+
+  # MongoDB initialization with Node.js and bcrypt
+  mongo-init:
+    image: node:18-alpine
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    volumes:
+      - ./scripts:/scripts
+    working_dir: /scripts
+    command: >
+      sh -c "
+        echo 'Installing Node.js dependencies...' &&
+        npm install &&
+        echo 'Starting MongoDB initialization...' &&
+        node mongo-init-node.js
+      "
+    environment:
+      - MONGODB_URL=mongodb://admin:password@mongodb:27017/scottlms?authSource=admin
     networks:
       - scottlms-network
 
@@ -61,6 +83,8 @@ services:
     depends_on:
       mongodb:
         condition: service_healthy
+      mongo-init:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:8081', (res) => process.exit(res.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
       interval: 10s
