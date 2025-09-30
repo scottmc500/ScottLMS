@@ -37,12 +37,29 @@ setup_rate_limiting(app)
 setup_logging()
 
 # Add CORS middleware
+import os
+
+# Get allowed origins from environment or use defaults
+ALLOWED_ORIGINS = os.getenv(
+    "CORS_ALLOWED_ORIGINS", 
+    "http://localhost:80,http://localhost:8501,http://127.0.0.1:80,http://127.0.0.1:8501"
+).split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure as needed
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=ALLOWED_ORIGINS,  # Specific origins only
+    allow_credentials=True,  # Safe with specific origins
+    allow_methods=["GET", "POST", "PUT", "DELETE"],  # Specific methods
+    allow_headers=[
+        "Accept",
+        "Accept-Language", 
+        "Content-Language",
+        "Content-Type",
+        "Authorization",
+        "X-Requested-With"
+    ],  # Specific headers only
+    expose_headers=["X-Total-Count"],  # Only expose necessary headers
+    max_age=3600,  # Cache preflight requests for 1 hour
 )
 
 

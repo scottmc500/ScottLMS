@@ -22,4 +22,5 @@ data:
   API_PORT: "8000"
   FRONTEND_PORT: "8501"
   API_BASE_URL: "http://scottlms-api-loadbalancer:8000"
+  CORS_ALLOWED_ORIGINS: "http://scottlms-frontend-loadbalancer,https://scottlms-frontend-loadbalancer"
 

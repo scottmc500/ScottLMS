@@ -14,8 +14,8 @@ def make_api_request(method: str, endpoint: str, data: Dict = None) -> Dict:
     try:
         url = f"{API_BASE_URL}{endpoint}"
 
-        # Add headers to handle Docker networking
-        headers = {"Host": "api:8000", "User-Agent": "ScottLMS-Frontend/1.0"}
+        # Add headers for API requests
+        headers = {"User-Agent": "ScottLMS-Frontend/1.0"}
 
         if method.upper() == "GET":
             response = requests.get(url, headers=headers, timeout=10)

@@ -12,6 +12,7 @@ services:
       - MONGODB_URL=mongodb://admin:password@mongodb:27017/scottlms?authSource=admin
       - ENVIRONMENT=development
       - LOG_LEVEL=debug
+      - CORS_ALLOWED_ORIGINS=http://localhost:80,http://localhost:8501,http://127.0.0.1:80,http://127.0.0.1:8501
     depends_on:
       mongodb:
         condition: service_healthy
